@@ -86,7 +86,7 @@ export default function SignupPage() {
   return (
     <main className="relative flex min-h-svh items-center justify-center px-4 py-16 sm:py-14">
       <AuroraBackground />
-      <DocumentationButton />
+      
 
       <motion.div
         initial={{ opacity: 0, y: 24, scale: 0.98 }}
