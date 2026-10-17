@@ -11,21 +11,21 @@ export interface AvatarEntry {
 }
 
 export const AVATARS: AvatarEntry[] = [
-  { id: "avatar", name: "Original", emoji: "🎭" },
-  { id: "avatar1", name: "Avatar 1", emoji: "🧑" },
-  { id: "avatar2", name: "Avatar 2", emoji: "👩" },
-  { id: "avatar3", name: "Avatar 3", emoji: "🧔" },
-  { id: "avatar4", name: "Avatar 4", emoji: "👱" },
-  { id: "avatar5", name: "Avatar 5", emoji: "👩‍🦰" },
-  { id: "avatar6", name: "Avatar 6", emoji: "🧑‍🦱" },
-  { id: "avatar7", name: "Avatar 7", emoji: "👨‍🦳" },
-  { id: "avatar8", name: "Avatar 8", emoji: "👩‍🦱" },
-  { id: "avatar9", name: "Avatar 9", emoji: "🧑‍🎤" },
-  { id: "avatar10", name: "Avatar 10", emoji: "🥷" },
-  { id: "avatar11", name: "Avatar 11", emoji: "🌟" },
+  { id: "avatar1", name: "Mikasa", emoji: "" },
+  { id: "avatar2", name: "Levei", emoji: "" },
+  { id: "avatar3", name: "Nezoko", emoji: "" },
+  { id: "avatar4", name: "Abi", emoji: "" },
+  { id: "avatar5", name: "Yuno", emoji: "" },
+  { id: "avatar6", name: "Kakashi", emoji: "" },
+  { id: "avatar7", name: "Asta", emoji: "" },
+  { id: "avatar8", name: "Foxi", emoji: "" },
+  { id: "avatar9", name: "Sakura", emoji: "" },
+  { id: "avatar10", name: "Roronoa", emoji: "" },
+  { id: "avatar11", name: "Saitama", emoji: "" },
+  { id: "avatar", name: "Hinata", emoji: "" },
 ]
 
-export const DEFAULT_AVATAR = "avatar11"
+export const DEFAULT_AVATAR = "Saitama"
 const STORAGE_KEY = "avatarpuppet:avatar"
 
 export function getSavedAvatar(): string {
