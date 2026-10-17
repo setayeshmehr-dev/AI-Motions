@@ -384,7 +384,7 @@ export default function WelcomePage() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 14 }}
-            className={`glass-card absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2.5 rounded-full px-5 py-2.5 text-sm ${
+            className={`glass-card absolute bottom-12 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2.5 rounded-full px-5 py-2.5 text-sm ${
               guide === "ok" ? "text-primary" : "text-foreground"
             }`}
           >
