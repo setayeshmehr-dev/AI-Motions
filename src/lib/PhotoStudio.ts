@@ -118,6 +118,7 @@ export async function shootMissingThumbnails({
   camera.position.set(0, 2, 2.1)
   camera.lookAt(0, 1.5, 0)
 
+  
   scene.add(new THREE.AmbientLight(0xffffff, 0.85))
   const key = new THREE.DirectionalLight(0xffffff, 1.6)
   key.position.set(2.5, 4, 3)
