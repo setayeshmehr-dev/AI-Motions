@@ -7,7 +7,7 @@ import { CameraOff, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { getGesture } from "@/lib/gestures"
-import { classifyGesture, type Landmark } from "@/lib/hand-gestures"
+import { classifyGesture } from "@/lib/hand-gestures"
 import { getHandLandmarker } from "@/lib/hand-landmarker"
 
 const HOLD_MS = 700 // how long a gesture must be held to be captured
@@ -25,16 +25,11 @@ const HAND_CONNECTIONS: [number, number][] = [
   [0, 17],
 ]
 
-function drawSkeleton(
-  ctx: CanvasRenderingContext2D,
-  lm: Landmark[] | null,
-  w: number,
-  h: number
-) {
+function drawSkeleton(ctx: CanvasRenderingContext2D, lm: any[] | null, w: number, h: number){
   ctx.clearRect(0, 0, w, h)
   if (!lm) return
-  const px = (p: Landmark) => (1 - p.x) * w // mirrored to match the video
-  const py = (p: Landmark) => p.y * h
+  const px = (p: any) => (1 - p.x) * w
+  const py = (p: any) => p.y * h
 
   ctx.save()
   ctx.lineWidth = Math.max(2, w * 0.005)
@@ -120,16 +115,13 @@ export function GestureCamera({ active, onCapture, onUnavailable }: GestureCamer
       if (!video || !canvas || !landmarker || video.readyState < 2) return
       if (video.currentTime === lastVideoTimeRef.current) return
       lastVideoTimeRef.current = video.currentTime
-
-      lastDetectTs = Math.max(performance.now(), lastDetectTs + 1)
-      let landmarks: Landmark[] | null = null
+      let landmarks: any[] | null = null
       try {
         const result = landmarker.detectForVideo(video, lastDetectTs)
-        landmarks = (result.landmarks?.[0] as Landmark[] | undefined) ?? null
+        landmarks = (result.landmarks?.[0] as any[] | undefined) ?? null
       } catch {
         return
       }
-
       const ctx = canvas.getContext("2d")
       if (ctx) drawSkeleton(ctx, landmarks, canvas.width, canvas.height)
 
