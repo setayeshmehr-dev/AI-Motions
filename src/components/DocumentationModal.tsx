@@ -6,20 +6,46 @@ import { BookOpen, X } from "lucide-react"
 
 import { DOC_CONTENT } from "@/lib/avatar-docs"
 
-export function DocumentationModal({ open, onOpenChange }) {
-  const [lang, setLang] = useState("fa") // Persian by default
-  const scrollRef = useRef(null)
-  const doc = DOC_CONTENT[lang]
+type DocLang = "fa" | "en"
+
+type DocBlock =
+  | { type: "p"; text: string }
+  | { type: "list"; items: string[] }
+  | { type: "table"; head: string[]; rows: string[][] }
+
+interface DocSection {
+  heading: string
+  blocks: DocBlock[]
+}
+
+interface DocContent {
+  title: string
+  intro: string
+  sections: DocSection[]
+}
+
+const CONTENT = DOC_CONTENT as Record<DocLang, DocContent>
+
+export function DocumentationModal({
+  open,
+  onOpenChange,
+}: {
+  open: boolean
+  onOpenChange: (o: boolean) => void
+}) {
+  const [lang, setLang] = useState<DocLang>("fa")
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const doc = CONTENT[lang]
   const rtl = lang === "fa"
 
   useEffect(() => {
     if (!open) return
-    const onKey = (e) => e.key === "Escape" && onOpenChange(false)
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onOpenChange(false)
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [open, onOpenChange])
 
-  const changeLang = (next) => {
+  const changeLang = (next: DocLang) => {
     if (next !== lang) {
       setLang(next)
       scrollRef.current?.scrollTo({ top: 0 })
@@ -42,9 +68,8 @@ export function DocumentationModal({ open, onOpenChange }) {
             exit={{ opacity: 0, scale: 0.96, y: 12 }}
             transition={{ duration: 0.22 }}
             onClick={(e) => e.stopPropagation()}
-            className="glass-card relative h-[85vh] w-full max-w-2xl overflow-hidden rounded-2xl"
+            className="glass-card relative h-[85dvh] w-full max-w-2xl overflow-hidden rounded-2xl"
           >
-            {/* scroller — LTR so the scrollbar stays on the right in both languages */}
             <div
               ref={scrollRef}
               dir="ltr"
@@ -80,7 +105,7 @@ export function DocumentationModal({ open, onOpenChange }) {
                         )
                       return (
                         <div key={bi} className="mt-4 overflow-x-auto rounded-xl border border-border/60">
-                          <table className="w-full min-w-[28rem] text-xs sm:text-sm">
+                          <table className="w-full min-w-[30rem] text-xs sm:text-sm">
                             <thead>
                               <tr className="border-b border-border/60 bg-secondary/40">
                                 {block.head.map((h, hi) => (
@@ -105,18 +130,16 @@ export function DocumentationModal({ open, onOpenChange }) {
                 ))}
 
                 <p className="mt-8 border-t border-border/50 pt-4 text-center text-xs text-muted-foreground">
-                  AvatarPuppet — models &amp; technologies
+                  ai-avatar — models &amp; technologies
                 </p>
               </div>
             </div>
 
-            {/* fade under the fixed header */}
             <div
               aria-hidden
               className="pointer-events-none absolute inset-x-0 top-0 z-[5] h-24 bg-gradient-to-b from-card/95 via-card/55 to-transparent"
             />
 
-            {/* fixed header */}
             <div className="absolute inset-x-0 top-0 z-10 border-b border-border/50 bg-card/75 px-4 py-3.5 pr-12 backdrop-blur-xl sm:px-6 sm:pr-14">
               <div className="flex items-center gap-2.5">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/30">

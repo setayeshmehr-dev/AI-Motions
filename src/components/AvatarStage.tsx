@@ -11,18 +11,19 @@ import { solveBody, HANG_ARM_R, HANG_ARM_L, SEATED_LEG_R, SEATED_LEG_L } from "@
 import { GESTURE_MOODS } from "@/lib/hand-gestures"
 
 const D = THREE.MathUtils.degToRad
-const clamp = (v, a, b) => Math.min(b, Math.max(a, v))
+const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v))
 const HEAD = { yawGain: 26, pitchGain: 14 }
 const Q_ID = new THREE.Quaternion()
 
-function loadVRM(url) {
+function loadVRM(url: string): Promise<any> {
   return new Promise((resolve, reject) => {
     const loader = new GLTFLoader()
-    loader.register((parser) => new VRMLoaderPlugin(parser))
+    // three-stdlib and @pixiv/three-vrm ship different GLTF typings — bridge.
+    ;(loader as any).register((parser: any) => new VRMLoaderPlugin(parser))
     loader.load(
       url,
-      (gltf) => {
-        const vrm = gltf.userData.vrm
+      (gltf: any) => {
+        const vrm = gltf?.userData?.vrm
         if (!vrm) return reject(new Error("No VRM found in " + url))
         VRMUtils.removeUnnecessaryVertices(gltf.scene)
         resolve(vrm)
@@ -34,9 +35,9 @@ function loadVRM(url) {
 }
 
 /** RAW-skeleton generation detection:
-   - VRM 0.x: LEFT arm bone at -X in world space → needs the 180° flip.
+   - VRM 0.x: LEFT arm bone at -X → needs the 180° flip.
    - VRM 1.0: LEFT arm at +X → already faces the camera. */
-function applyFacing(vrm) {
+function applyFacing(vrm: any) {
   let needsFlip = false
   try {
     const hb = vrm.humanoid?.humanBones
@@ -53,11 +54,11 @@ function applyFacing(vrm) {
   return !needsFlip
 }
 
-function buildExprMap(em) {
-  const names = new Set()
-  if (em.expressionMap) Object.keys(em.expressionMap).forEach((n) => names.add(n))
-  if (Array.isArray(em.expressions)) em.expressions.forEach((e) => names.add(e.expressionName))
-  const pick = (...c) => c.find((x) => names.has(x)) ?? null
+function buildExprMap(em: any) {
+  const names = new Set<string>()
+  if (em.expressionMap) Object.keys(em.expressionMap).forEach((n: string) => names.add(n))
+  if (Array.isArray(em.expressions)) em.expressions.forEach((e: any) => names.add(e.expressionName))
+  const pick = (...c: string[]) => c.find((x) => names.has(x)) ?? null
   return {
     blink: pick("blink"),
     blinkLeft: pick("blinkLeft", "blink_l"),
@@ -67,19 +68,24 @@ function buildExprMap(em) {
   }
 }
 
-function PuppetVRM({ avatarUrl, onInfo }) {
-  const [vrm, setVrm] = useState(null)
-  const exprMapRef = useRef(null)
+function PuppetVRM({ avatarUrl, onInfo }: { avatarUrl: string; onInfo?: (i: any) => void }) {
+  const [vrm, setVrm] = useState<any>(null)
+  const exprMapRef = useRef<any>(null)
 
   useEffect(() => {
     let cancelled = false
     loadVRM(avatarUrl)
-      .then((v) => {
-        if (cancelled) { VRMUtils.deepDispose(v.scene); return }
+      .then((v: any) => {
+        if (cancelled) {
+          VRMUtils.deepDispose(v.scene)
+          return
+        }
         applyFacing(v)
-        setVrm((prev) => {
+        setVrm((prev: any) => {
           if (prev) {
-            try { VRMUtils.deepDispose(prev.scene) } catch {}
+            try {
+              VRMUtils.deepDispose(prev.scene)
+            } catch {}
           }
           return v
         })
@@ -90,28 +96,33 @@ function PuppetVRM({ avatarUrl, onInfo }) {
         const boneCount = v.humanoid?.humanBones ? Object.keys(v.humanoid.humanBones).length : 55
         onInfo?.({ morphs: M ? M.available.length : 0, bones: boneCount, avatar: avatarUrl })
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error("VRM load failed:", avatarUrl, err)
         onInfo?.({ morphs: 0, bones: 0, error: String(err?.message || err), avatar: avatarUrl })
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [avatarUrl, onInfo])
 
-  const tmp = useMemo(() => ({ e: new THREE.Euler(), q: new THREE.Quaternion(), smooth: {} }), [])
+  const tmp = useMemo(
+    () => ({ e: new THREE.Euler(), q: new THREE.Quaternion(), smooth: {} as Record<string, number> }),
+    []
+  )
 
-  useFrame((state, rawDt) => {
+  useFrame((state: any, rawDt: number) => {
     if (!vrm) return
     const dt = Math.min(rawDt, 0.05)
     const t = state.clock.elapsedTime
     const humanoid = vrm.humanoid
     if (humanoid?.autoUpdateHumanBones === false) humanoid.autoUpdateHumanBones = true
 
-    const applyQ = (name, q, lambda = 12) => {
+    const applyQ = (name: string, q: any, lambda = 12) => {
       const node = humanoid.getNormalizedBoneNode(name)
       if (!node || !q) return
       node.quaternion.slerp(q, 1 - Math.exp(-lambda * dt))
     }
-    const applyEuler = (name, x, y, z, lambda = 8) => {
+    const applyEuler = (name: string, x: number, y: number, z: number, lambda = 8) => {
       const node = humanoid.getNormalizedBoneNode(name)
       if (!node) return
       tmp.e.set(x, y, z, "XYZ")
@@ -134,10 +145,20 @@ function PuppetVRM({ avatarUrl, onInfo }) {
         applyQ("chest", body.chest, 8)
       } else applyQ("spine", body.total, 8)
 
-      if (body.armR) { applyQ("rightUpperArm", body.armR.upper, 14); applyQ("rightLowerArm", body.armR.lower, 14) }
-      else { applyQ("rightUpperArm", HANG_ARM_R.upper, 4); applyQ("rightLowerArm", HANG_ARM_R.lower, 4) }
-      if (body.armL) { applyQ("leftUpperArm", body.armL.upper, 14); applyQ("leftLowerArm", body.armL.lower, 14) }
-      else { applyQ("leftUpperArm", HANG_ARM_L.upper, 4); applyQ("leftLowerArm", HANG_ARM_L.lower, 4) }
+      if (body.armR) {
+        applyQ("rightUpperArm", body.armR.upper, 14)
+        applyQ("rightLowerArm", body.armR.lower, 14)
+      } else {
+        applyQ("rightUpperArm", HANG_ARM_R.upper, 4)
+        applyQ("rightLowerArm", HANG_ARM_R.lower, 4)
+      }
+      if (body.armL) {
+        applyQ("leftUpperArm", body.armL.upper, 14)
+        applyQ("leftLowerArm", body.armL.lower, 14)
+      } else {
+        applyQ("leftUpperArm", HANG_ARM_L.upper, 4)
+        applyQ("leftLowerArm", HANG_ARM_L.lower, 4)
+      }
 
       if (seated) {
         applyQ("rightUpperLeg", SEATED_LEG_R.upper, 5)
@@ -146,10 +167,20 @@ function PuppetVRM({ avatarUrl, onInfo }) {
         applyQ("leftLowerLeg", SEATED_LEG_L.lower, 5)
         if (hasChest) applyEuler("chest", Math.sin(t * 1.7) * D(1.5), 0, 0, 6)
       } else {
-        if (body.legR) { applyQ("rightUpperLeg", body.legR.upper, 10); applyQ("rightLowerLeg", body.legR.lower, 10) }
-        else { applyQ("rightUpperLeg", Q_ID, 3); applyQ("rightLowerLeg", Q_ID, 3) }
-        if (body.legL) { applyQ("leftUpperLeg", body.legL.upper, 10); applyQ("leftLowerLeg", body.legL.lower, 10) }
-        else { applyQ("leftUpperLeg", Q_ID, 3); applyQ("leftLowerLeg", Q_ID, 3) }
+        if (body.legR) {
+          applyQ("rightUpperLeg", body.legR.upper, 10)
+          applyQ("rightLowerLeg", body.legR.lower, 10)
+        } else {
+          applyQ("rightUpperLeg", Q_ID, 3)
+          applyQ("rightLowerLeg", Q_ID, 3)
+        }
+        if (body.legL) {
+          applyQ("leftUpperLeg", body.legL.upper, 10)
+          applyQ("leftLowerLeg", body.legL.lower, 10)
+        } else {
+          applyQ("leftUpperLeg", Q_ID, 3)
+          applyQ("leftLowerLeg", Q_ID, 3)
+        }
       }
       applyQ("hips", Q_ID, 3)
     } else {
@@ -164,15 +195,17 @@ function PuppetVRM({ avatarUrl, onInfo }) {
         applyQ("leftUpperLeg", SEATED_LEG_L.upper, 5)
         applyQ("leftLowerLeg", SEATED_LEG_L.lower, 5)
       } else {
-        applyQ("rightUpperLeg", Q_ID, 3); applyQ("rightLowerLeg", Q_ID, 3)
-        applyQ("leftUpperLeg", Q_ID, 3); applyQ("leftLowerLeg", Q_ID, 3)
+        applyQ("rightUpperLeg", Q_ID, 3)
+        applyQ("rightLowerLeg", Q_ID, 3)
+        applyQ("leftUpperLeg", Q_ID, 3)
+        applyQ("leftLowerLeg", Q_ID, 3)
       }
       applyEuler("spine", Math.sin(t * 1.7) * D(2), 0, 0, 6)
       applyEuler("chest", Math.sin(t * 1.7 + 0.4) * D(1.5), 0, 0, 6)
       applyEuler("hips", 0, Math.sin(t * 0.5) * D(2), 0, 4)
     }
 
-    /* ---- head ---- */
+    /* head */
     let headNod = store.speaking ? Math.sin(t * 6) * D(2) : 0
     const moodHead = mood?.head ?? [0, 0, 0]
     if (mood && (mood.reaction === "nod" || mood.reaction === "joy") && moodAge < 0.5) {
@@ -185,7 +218,7 @@ function PuppetVRM({ avatarUrl, onInfo }) {
     const pitch = clamp(store.headPitch, -1, 1) * D(HEAD.pitchGain)
     applyEuler("head", pitch + headNod + D(moodHead[0]), yaw + D(moodHead[1]), D(moodHead[2]), 10)
 
-    /* ---- mood hop ---- */
+    /* mood hop */
     let y = 0
     if (mood) {
       if (mood.reaction === "joy" && moodAge < 0.5) y += Math.sin((moodAge / 0.5) * Math.PI) * 0.09
@@ -196,20 +229,21 @@ function PuppetVRM({ avatarUrl, onInfo }) {
 
     humanoid.update()
 
-    /* ---- FACE ---- */
+    /* FACE */
     const em = vrm.expressionManager
     const M = exprMapRef.current
     if (em && M) {
-      const bs = store.blendshapes || {}
-      const lerp = (k, target, rate = 16) => {
+      const bs = (store.blendshapes || {}) as Record<string, number>
+      const lerp = (k: string, target: number, rate = 16) => {
         const cur = tmp.smooth[k] ?? 0
         tmp.smooth[k] = THREE.MathUtils.damp(cur, target, rate, dt)
         return tmp.smooth[k]
       }
-      const set = (key, v) => { if (M[key] != null) em.setValue(M[key], v) }
+      const set = (key: string, v: number) => {
+        if (M[key] != null) em.setValue(M[key], v)
+      }
 
-      /* blinks: fully independent, snappy deadzone (no sleepy eyes) */
-      const remapBlink = (raw) => {
+      const remapBlink = (raw: number) => {
         if (raw < 0.25) return 0
         if (raw > 0.85) return 1
         return (raw - 0.25) / 0.6
@@ -226,16 +260,42 @@ function PuppetVRM({ avatarUrl, onInfo }) {
       else set("blink", Math.max(lBlink, rBlink))
 
       set("happy", lerp("happy", Math.max(bs.mouthSmileLeft ?? 0, bs.mouthSmileRight ?? 0)))
-      set("angry", lerp("angry", (bs.browDownLeft ?? 0) * 0.5 + (bs.browDownRight ?? 0) * 0.5 + (bs.mouthFrownLeft ?? 0) * 0.25 + (bs.mouthFrownRight ?? 0) * 0.25))
-      set("sad", lerp("sad", (bs.browInnerUp ?? 0) * 0.6 + (bs.mouthFrownLeft ?? 0) * 0.3 + (bs.mouthFrownRight ?? 0) * 0.3))
-      set("surprised", lerp("surprised", (bs.browInnerUp ?? 0) * 0.4 + (bs.browOuterUpLeft ?? 0) * 0.3 + (bs.browOuterUpRight ?? 0) * 0.3 + (bs.jawOpen ?? 0) * 0.3))
+      set(
+        "angry",
+        lerp(
+          "angry",
+          (bs.browDownLeft ?? 0) * 0.5 +
+            (bs.browDownRight ?? 0) * 0.5 +
+            (bs.mouthFrownLeft ?? 0) * 0.25 +
+            (bs.mouthFrownRight ?? 0) * 0.25
+        )
+      )
+      set(
+        "sad",
+        lerp(
+          "sad",
+          (bs.browInnerUp ?? 0) * 0.6 +
+            (bs.mouthFrownLeft ?? 0) * 0.3 +
+            (bs.mouthFrownRight ?? 0) * 0.3
+        )
+      )
+      set(
+        "surprised",
+        lerp(
+          "surprised",
+          (bs.browInnerUp ?? 0) * 0.4 +
+            (bs.browOuterUpLeft ?? 0) * 0.3 +
+            (bs.browOuterUpRight ?? 0) * 0.3 +
+            (bs.jawOpen ?? 0) * 0.3
+        )
+      )
       set("aa", lerp("aa", clamp(bs.jawOpen ?? 0, 0, 1)))
 
       if (mood?.expr) {
         for (const [k, v] of Object.entries(mood.expr)) {
           if (M[k] == null) continue
           const cur = em.getValue?.(M[k]) ?? 0
-          em.setValue(M[k], Math.max(cur, v))
+          em.setValue(M[k], Math.max(cur, v as number))
         }
       }
     }
@@ -247,7 +307,7 @@ function PuppetVRM({ avatarUrl, onInfo }) {
   return <primitive object={vrm.scene} />
 }
 
-export function AvatarStage({ avatarUrl, onInfo }) {
+export function AvatarStage({ avatarUrl, onInfo }: { avatarUrl: string; onInfo?: (i: any) => void }) {
   return (
     <Canvas
       camera={{ position: [0, 1.35, 3.4], fov: 38 }}
@@ -275,8 +335,16 @@ export function AvatarStage({ avatarUrl, onInfo }) {
 
       <ContactShadows position={[0, 0.006, 0]} opacity={0.55} scale={4} blur={2.4} far={2} />
 
-      <OrbitControls target={[0, 1.02, 0]} enablePan={false} minDistance={1.8} maxDistance={6}
-        minPolarAngle={0.7} maxPolarAngle={1.55} enableDamping dampingFactor={0.08} />
+      <OrbitControls
+        target={[0, 1.02, 0]}
+        enablePan={false}
+        minDistance={1.8}
+        maxDistance={6}
+        minPolarAngle={0.7}
+        maxPolarAngle={1.55}
+        enableDamping
+        dampingFactor={0.08}
+      />
     </Canvas>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { AnimatePresence, motion } from "framer-motion"
 import {
@@ -18,7 +18,7 @@ import { endWelcomeSession, getWelcomeSession } from "@/lib/storage"
 import { onGuideChange, store } from "@/lib/tracking-store"
 import { useTracking } from "@/lib/use-tracking"
 
-const GUIDES = {
+const GUIDES: Record<string, { emoji: string; text: string }> = {
   "step-back": { emoji: "↩️", text: "Step back a little — I can barely see you" },
   shoulders: { emoji: "🤷", text: "Bring your shoulders into the frame" },
   arms: { emoji: "🙌", text: "Bring your hands in front of the camera" },
@@ -56,12 +56,22 @@ const GESTURE_EFFECTS = [
   { emoji: "👋", name: "Wave (palm + shake)", desc: "Your arm waves in the mirror + smile" },
 ]
 
-const GESTURE_EMOJI = {
+const GESTURE_EMOJI: Record<string, string> = {
   "thumbs-up": "👍", "thumbs-down": "👎", peace: "✌️", love: "🤟", rock: "🤘",
   fist: "✊", ok: "👌", call: "🤙", point: "☝️", palm: "✋", wave: "👋",
 }
 
-function Chip({ ok, icon, label, highlight }) {
+function Chip({
+  ok,
+  icon,
+  label,
+  highlight,
+}: {
+  ok: boolean
+  icon: ReactNode
+  label: string
+  highlight?: boolean
+}) {
   return (
     <div
       className={`glass-card flex h-10 items-center gap-1.5 rounded-xl px-3 text-xs font-medium ${
@@ -77,26 +87,25 @@ function Chip({ ok, icon, label, highlight }) {
 export default function WelcomePage() {
   const router = useRouter()
 
-  const [session, setSession] = useState(null)
+  const [session, setSession] = useState<any>(null)
   const [ready, setReady] = useState(false)
-  const [info, setInfo] = useState(null)
+  const [info, setInfo] = useState<any>(null)
   const [docsOpen, setDocsOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [guideOpen, setGuideOpen] = useState(false)
-  const [askOpen, setAskOpen] = useState(null)
+  const [askOpen, setAskOpen] = useState<string | null>(null)
   const [faceMode, setFaceMode] = useState(true)
   const [handMode, setHandMode] = useState(true)
   const [bodyMode, setBodyModeState] = useState("auto")
   const [guide, setGuideState] = useState("")
 
   const [avatarId, setAvatarId] = useState(DEFAULT_AVATAR)
-  const [available, setAvailable] = useState([])
-  const [thumbs, setThumbs] = useState({})
+  const [available, setAvailable] = useState<string[]>([])
+  const [thumbs, setThumbs] = useState<Record<string, string>>({})
   const [photoProgress, setPhotoProgress] = useState({ done: 0, total: 0 })
 
   const { status, errorMsg, facePresent, bodyPresent, seated, gesture, restart } = useTracking(ready)
 
-  /* session guard — the mirror lives behind the sign-in */
   useEffect(() => {
     const s = getWelcomeSession()
     if (!s) {
@@ -106,7 +115,6 @@ export default function WelcomePage() {
     setSession(s)
   }, [router])
 
-  /* avatar files + cached photos + shoot missing */
   useEffect(() => {
     const saved = getSavedAvatar()
     setThumbs(loadThumbs())
@@ -118,13 +126,13 @@ export default function WelcomePage() {
           .catch(() => null)
       )
     ).then(async (results) => {
-      const found = results.filter(Boolean)
+      const found = results.filter(Boolean) as string[]
       setAvailable(found)
       if (found.includes(saved)) setAvatarId(saved)
       else if (found.includes(DEFAULT_AVATAR)) setAvatarId(DEFAULT_AVATAR)
       else if (found.length) setAvatarId(found[0])
 
-      const urls = {}
+      const urls: Record<string, string> = {}
       for (const id of found) urls[id] = avatarUrl(id)
       try {
         const shot = await shootMissingThumbnails({
@@ -133,7 +141,7 @@ export default function WelcomePage() {
           onProgress: (done, total) => setPhotoProgress({ done, total }),
         })
         if (Object.keys(shot).length) setThumbs((t) => ({ ...t, ...shot }))
-      } catch (e) {
+      } catch (e: any) {
         console.warn("[PhotoStudio] shoot failed:", e?.message || e)
       }
 
@@ -144,9 +152,15 @@ export default function WelcomePage() {
 
   useEffect(() => onGuideChange(setGuideState), [])
 
-  useEffect(() => { store.faceMode = faceMode }, [faceMode])
-  useEffect(() => { store.handMode = handMode }, [handMode])
-  useEffect(() => { store.bodyMode = bodyMode }, [bodyMode])
+  useEffect(() => {
+    store.faceMode = faceMode
+  }, [faceMode])
+  useEffect(() => {
+    store.handMode = handMode
+  }, [handMode])
+  useEffect(() => {
+    store.bodyMode = bodyMode
+  }, [bodyMode])
 
   useEffect(() => {
     if (status === "running" && session)
@@ -155,7 +169,7 @@ export default function WelcomePage() {
       })
   }, [status, session])
 
-  const handleInfo = useCallback((i) => setInfo(i), [])
+  const handleInfo = useCallback((i: any) => setInfo(i), [])
 
   const signOut = () => {
     endWelcomeSession()
@@ -163,7 +177,7 @@ export default function WelcomePage() {
     router.push("/signin")
   }
 
-  const setBodyMode = (id) => {
+  const setBodyMode = (id: string) => {
     setBodyModeState(id)
     setAskOpen("done")
     if (id === "seated")
@@ -172,7 +186,7 @@ export default function WelcomePage() {
       toast("Standing mode 🧍", { description: "Best when the camera sees your whole body." })
   }
 
-  const selectAvatar = (id) => {
+  const selectAvatar = (id: string) => {
     if (!available.includes(id) || id === avatarId) {
       setPickerOpen(false)
       return
@@ -184,7 +198,6 @@ export default function WelcomePage() {
     toast.success(`Switched to ${name} 🎭`, { description: "Same tracking, new actor." })
   }
 
-  /* still checking the session → spinner */
   if (!session) {
     return (
       <main className="relative flex h-svh items-center justify-center">
@@ -207,7 +220,6 @@ export default function WelcomePage() {
       <div className="absolute inset-x-0 top-0 z-20 flex flex-col gap-2 p-3 sm:p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex gap-2">
-            {/* sign out — replaces Home */}
             <button
               onClick={signOut}
               aria-label="Sign out"
@@ -252,11 +264,7 @@ export default function WelcomePage() {
               <Hand className="h-4 w-4" /> Gestures {handMode ? "ON" : "OFF"}
             </button>
 
-            <div
-              className="glass-card flex items-center gap-1 rounded-xl p-1"
-              role="group"
-              aria-label="Body mode"
-            >
+            <div className="glass-card flex items-center gap-1 rounded-xl p-1" role="group" aria-label="Body mode">
               {BODY_MODES.map((m) => {
                 const Icon = m.icon
                 return (
@@ -287,21 +295,15 @@ export default function WelcomePage() {
           </div>
           {bodyMode !== "off" && (
             <>
-              <Chip ok={mirrorOn} icon={<PersonStanding className={`h-4 w-4 ${mirrorOn ? "text-primary" : ""}`} />}
-                label={mirrorOn ? "Body mirror" : "No body"} />
-              {seated && (
-                <Chip ok icon={<Armchair className="h-4 w-4 text-primary" />} label="Seated" />
-              )}
+              <Chip ok={mirrorOn} icon={<PersonStanding className={`h-4 w-4 ${mirrorOn ? "text-primary" : ""}`} />} label={mirrorOn ? "Body mirror" : "No body"} />
+              {seated && <Chip ok icon={<Armchair className="h-4 w-4 text-primary" />} label="Seated" />}
             </>
           )}
           {handMode && gesture && (
-            <Chip ok highlight
-              icon={<Hand className="h-4 w-4 text-primary" />}
-              label={`${GESTURE_EMOJI[gesture] ?? "✋"} ${gesture}`} />
+            <Chip ok highlight icon={<Hand className="h-4 w-4 text-primary" />} label={`${GESTURE_EMOJI[gesture] ?? "✋"} ${gesture}`} />
           )}
           {faceMode && (
-            <Chip ok={facePresent} icon={<ScanFace className={`h-4 w-4 ${facePresent ? "text-primary" : ""}`} />}
-              label={facePresent ? "Face" : "No face"} />
+            <Chip ok={facePresent} icon={<ScanFace className={`h-4 w-4 ${facePresent ? "text-primary" : ""}`} />} label={facePresent ? "Face" : "No face"} />
           )}
         </div>
       </div>
@@ -311,7 +313,6 @@ export default function WelcomePage() {
         {ready && <AvatarStage avatarUrl={avatarUrl(avatarId)} onInfo={handleInfo} />}
       </div>
 
-      {/* avatar picker */}
       <AvatarPicker
         open={pickerOpen}
         onOpenChange={setPickerOpen}
@@ -321,7 +322,6 @@ export default function WelcomePage() {
         onSelect={selectAvatar}
       />
 
-      {/* photo-shoot progress */}
       {shooting && (
         <div className="glass-card absolute top-1/2 left-1/2 z-30 flex -translate-x-1/2 -translate-y-1/2 items-center gap-3 rounded-2xl px-6 py-4">
           <div>
@@ -339,7 +339,6 @@ export default function WelcomePage() {
         </div>
       )}
 
-      {/* seated question */}
       <AnimatePresence>
         {askOpen === "asking" && (
           <motion.div
@@ -378,7 +377,6 @@ export default function WelcomePage() {
         )}
       </AnimatePresence>
 
-      {/* live guidance */}
       <AnimatePresence>
         {guideInfo && status === "running" && bodyMode !== "off" && askOpen !== "asking" && !guideOpen && (
           <motion.div

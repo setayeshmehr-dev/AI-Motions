@@ -7,14 +7,11 @@ import { CameraOff, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { getGesture } from "@/lib/gestures"
-import { classifyGesture } from "@/lib/hand-gestures"
+import { classifyGesture, type Landmark } from "@/lib/hand-gestures"
 import { getPasswordHandLandmarker, nextPasswordHandTs } from "@/lib/model-loaders"
 
-const HOLD_MS = 700 // how long a gesture must be held to be captured
-const VOTE_FRAMES = 5 // majority-vote window that kills classification flicker
-
-/** detectForVideo needs strictly increasing timestamps across the whole page */
-let lastDetectTs = 0
+const HOLD_MS = 700
+const VOTE_FRAMES = 5
 
 const HAND_CONNECTIONS: [number, number][] = [
   [0, 1], [1, 2], [2, 3], [3, 4],
@@ -25,11 +22,16 @@ const HAND_CONNECTIONS: [number, number][] = [
   [0, 17],
 ]
 
-function drawSkeleton(ctx: CanvasRenderingContext2D, lm: any[] | null, w: number, h: number){
+function drawSkeleton(
+  ctx: CanvasRenderingContext2D,
+  lm: Landmark[] | null,
+  w: number,
+  h: number
+) {
   ctx.clearRect(0, 0, w, h)
   if (!lm) return
-  const px = (p: any) => (1 - p.x) * w
-  const py = (p: any) => p.y * h
+  const px = (p: Landmark) => (1 - p.x) * w
+  const py = (p: Landmark) => p.y * h
 
   ctx.save()
   ctx.lineWidth = Math.max(2, w * 0.005)
@@ -115,17 +117,18 @@ export function GestureCamera({ active, onCapture, onUnavailable }: GestureCamer
       if (!video || !canvas || !landmarker || video.readyState < 2) return
       if (video.currentTime === lastVideoTimeRef.current) return
       lastVideoTimeRef.current = video.currentTime
-      let landmarks: any[] | null = null
+
+      let landmarks: Landmark[] | null = null
       try {
         const result = landmarker.detectForVideo(video, nextPasswordHandTs())
-        landmarks = (result.landmarks?.[0] as any[] | undefined) ?? null
+        landmarks = (result.landmarks?.[0] as Landmark[] | undefined) ?? null
       } catch {
         return
       }
+
       const ctx = canvas.getContext("2d")
       if (ctx) drawSkeleton(ctx, landmarks, canvas.width, canvas.height)
 
-      // Majority vote over the last frames → smooths flicker
       const vote = voteRef.current
       vote.push(landmarks ? classifyGesture(landmarks) : null)
       if (vote.length > VOTE_FRAMES) vote.shift()
@@ -159,8 +162,6 @@ export function GestureCamera({ active, onCapture, onUnavailable }: GestureCamer
         return
       }
 
-      // The gesture just captured must leave the frame (or change)
-      // before the same one can fire again — prevents double-slotting.
       if (id === lastCapturedRef.current && !armedRef.current) {
         stableRef.current = null
         setHold(0)
@@ -191,7 +192,7 @@ export function GestureCamera({ active, onCapture, onUnavailable }: GestureCamer
 
     ;(async () => {
       try {
-        const landmarker = await getPasswordHandLandmarker()        
+        const landmarker = await getPasswordHandLandmarker()
         if (cancelled) return
         landmarkerRef.current = landmarker
 
@@ -221,13 +222,13 @@ export function GestureCamera({ active, onCapture, onUnavailable }: GestureCamer
 
         setPhase("running")
         rafRef.current = requestAnimationFrame(loop)
-      } catch (err) {
+      } catch (err: any) {
         if (cancelled) return
         setPhase("error")
         const message =
-          err instanceof Error && err.name === "NotAllowedError"
+          err?.name === "NotAllowedError"
             ? "Camera permission was denied."
-            : err instanceof Error && err.name === "NotFoundError"
+            : err?.name === "NotFoundError"
               ? "No camera was found on this device."
               : "Couldn't start the camera."
         setErrorMsg(message)
@@ -239,7 +240,6 @@ export function GestureCamera({ active, onCapture, onUnavailable }: GestureCamer
       cancelled = true
       cleanup()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const detectedGesture = detected ? getGesture(detected) : null
@@ -261,7 +261,6 @@ export function GestureCamera({ active, onCapture, onUnavailable }: GestureCamer
         />
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
-        {/* capture flash */}
         {flashT > 0 && (
           <motion.div
             key={flashT}
@@ -334,7 +333,7 @@ export function GestureCamera({ active, onCapture, onUnavailable }: GestureCamer
             ? "Hold a gesture inside the frame — keep it steady to lock it in."
             : justCaptured
               ? "Locked in ✅ — lower your hand or switch gestures for the next slot."
-              : `Hold “${detectedGesture?.label}” steady to confirm…`}
+              : `Hold "${detectedGesture?.label}" steady to confirm…`}
       </p>
     </div>
   )

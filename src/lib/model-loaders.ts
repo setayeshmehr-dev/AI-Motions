@@ -1,10 +1,15 @@
-// Singleton model loaders + a filter that hides MediaPipe's benign WASM
-// "INFO:" lines (they arrive via console.error and trip Next's dev overlay).
+// Singleton model loaders.
+// TWO hand loaders:
+//  · getHandLandmarker         — MIRROR (welcome page): numHands 2
+//  · getPasswordHandLandmarker — AUTH (signup/signin password): numHands 1,
+//    its own instance + timestamp counter. A lone hand with 2 slots
+//    sometimes lands in landmarks[1], leaving [0] empty → the password
+//    camera captured nothing. Dedicated loader = stable.
 
-if (typeof window !== "undefined" && !window.__apWasmLogsSilenced) {
-  window.__apWasmLogsSilenced = true
+if (typeof window !== "undefined" && !(window as any).__apWasmLogsSilenced) {
+  ;(window as any).__apWasmLogsSilenced = true
   const original = console.error.bind(console)
-  console.error = (...args) => {
+  console.error = (...args: unknown[]) => {
     const first = args[0]
     if (typeof first === "string" && (/^INFO:/.test(first) || /XNNPACK delegate/i.test(first))) return
     original(...args)
@@ -13,7 +18,7 @@ if (typeof window !== "undefined" && !window.__apWasmLogsSilenced) {
 
 const WASM = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
 
-const MODEL_SOURCES = {
+const MODEL_SOURCES: Record<string, string[]> = {
   hand: [
     "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
     "https://cdn.jsdelivr.net/gh/googlesamples/mediapipe@main/examples/hand_landmarker/web/hand_landmarker.task",
@@ -27,19 +32,19 @@ const MODEL_SOURCES = {
   ],
 }
 
-async function createModel(kind, preferred) {
+async function createModel(kind: string, preferred: "GPU" | "CPU") {
   const vision = await import("@mediapipe/tasks-vision")
   const fileset = await vision.FilesetResolver.forVisionTasks(WASM)
   const urls = MODEL_SOURCES[kind]
-  let lastError = null
+  let lastError: unknown = null
 
   for (const url of urls) {
-    const build = (delegate) => {
-      const options = {
+    const build = (delegate: "GPU" | "CPU") => {
+      const options: any = {
         baseOptions: { modelAssetPath: url, delegate },
         runningMode: "VIDEO",
       }
-      if (kind === "hand") options.numHands = 1
+      if (kind === "hand") options.numHands = 2
       else if (kind === "face") {
         options.numFaces = 1
         options.outputFaceBlendshapes = true
@@ -58,44 +63,45 @@ async function createModel(kind, preferred) {
       }
     } catch (err) {
       lastError = err
-      console.warn(`[AvatarPuppet] model source failed (${kind}): ${url}`, err?.message || err)
+      console.warn(`[ai-avatar] model source failed (${kind}): ${url}`, err)
     }
   }
   throw lastError || new Error(`All model sources failed for "${kind}"`)
 }
 
-let handPromise = null
-let facePromise = null
-let posePromise = null
+let handPromise: Promise<any> | null = null
+let facePromise: Promise<any> | null = null
+let posePromise: Promise<any> | null = null
 
 export function getHandLandmarker() {
   if (!handPromise)
-    handPromise = createModel("hand", "GPU").catch((e) => { handPromise = null; throw e })
+    handPromise = createModel("hand", "GPU").catch((e) => {
+      handPromise = null
+      throw e
+    })
   return handPromise
 }
 
 export function getFaceLandmarker() {
   if (!facePromise)
-    facePromise = createModel("face", "GPU").catch((e) => { facePromise = null; throw e })
+    facePromise = createModel("face", "GPU").catch((e) => {
+      facePromise = null
+      throw e
+    })
   return facePromise
 }
 
 export function getPoseLandmarker() {
   if (!posePromise)
-    posePromise = createModel("pose", "GPU").catch((e) => { posePromise = null; throw e })
+    posePromise = createModel("pose", "GPU").catch((e) => {
+      posePromise = null
+      throw e
+    })
   return posePromise
 }
 
-// detectForVideo needs strictly increasing timestamps per model instance
-let handTs = 0
-let faceTs = 0
-let poseTs = 0
-export const nextHandTs = () => (handTs = Math.max(performance.now(), handTs + 1))
-export const nextFaceTs = () => (faceTs = Math.max(performance.now(), faceTs + 1))
-export const nextPoseTs = () => (poseTs = Math.max(performance.now(), poseTs + 1))
-
-/* Separate hand landmarker for the gesture PASSWORD (single hand). */
-let passwordHandPromise = null
+/* ---- dedicated single-hand loader for the gesture PASSWORD ---- */
+let passwordHandPromise: Promise<any> | null = null
 let passwordHandTs = 0
 
 export function getPasswordHandLandmarker() {
@@ -103,10 +109,10 @@ export function getPasswordHandLandmarker() {
     passwordHandPromise = (async () => {
       const vision = await import("@mediapipe/tasks-vision")
       const fileset = await vision.FilesetResolver.forVisionTasks(WASM)
-      const urls = MODEL_SOURCES.hand
-      const build = (delegate) =>
+      const url = MODEL_SOURCES.hand[0]
+      const build = (delegate: "GPU" | "CPU") =>
         vision.HandLandmarker.createFromOptions(fileset, {
-          baseOptions: { modelAssetPath: urls[0], delegate },
+          baseOptions: { modelAssetPath: url, delegate },
           runningMode: "VIDEO",
           numHands: 1,
         })
@@ -125,3 +131,11 @@ export function getPasswordHandLandmarker() {
 
 export const nextPasswordHandTs = () =>
   (passwordHandTs = Math.max(performance.now(), passwordHandTs + 1))
+
+// strictly-increasing timestamps for the shared loaders
+let handTs = 0
+let faceTs = 0
+let poseTs = 0
+export const nextHandTs = () => (handTs = Math.max(performance.now(), handTs + 1))
+export const nextFaceTs = () => (faceTs = Math.max(performance.now(), faceTs + 1))
+export const nextPoseTs = () => (poseTs = Math.max(performance.now(), poseTs + 1))

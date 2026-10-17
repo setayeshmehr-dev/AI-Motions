@@ -12,40 +12,46 @@ import { classifyGesture } from "./hand-gestures"
 const VOTE_FRAMES = 5
 const HOLD_MS = 600
 const LOSE_MS = 1100
-const clamp = (v, a, b) => Math.min(b, Math.max(a, v))
+const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v))
 
-export function useTracking(enabled) {
-  const [status, setStatus] = useState("idle")
+export function useTracking(enabled: boolean) {
+  const [status, setStatus] = useState<"idle" | "loading" | "running" | "error">("idle")
   const [errorMsg, setErrorMsg] = useState("")
   const [facePresent, setFacePresent] = useState(false)
   const [speaking, setSpeaking] = useState(false)
   const [bodyPresent, setBodyPresent] = useState(false)
   const [seated, setSeated] = useState(false)
-  const [gesture, setGesture] = useState(null)
-  const stopRef = useRef(null)
+  const [gesture, setGesture] = useState<string | null>(null)
+  const stopRef = useRef<(() => void) | null>(null)
 
   const start = useCallback(async () => {
     if (stopRef.current) return
     let raf = 0
-    let stream = null
-    let video = null
+    let stream: MediaStream | null = null
+    let video: HTMLVideoElement | null = null
     let cancelled = false
     let lastVideoTime = -1
 
-    let hand = null
-    let face = null
-    let pose = null
-    const pending = {}
-    const ensureModel = (kind) => {
+    let hand: any = null
+    let face: any = null
+    let pose: any = null
+    const pending: Record<string, Promise<void> | null> = {}
+    const ensureModel = (kind: string) => {
       if (pending[kind]) return
       const load =
         kind === "hand" ? getHandLandmarker()
         : kind === "face" ? getFaceLandmarker()
         : getPoseLandmarker()
       pending[kind] = load
-        .then((m) => { if (kind === "hand") hand = m; else if (kind === "face") face = m; else pose = m })
-        .catch((e) => console.warn(`[AvatarPuppet] "${kind}" model unavailable:`, e?.message || e))
-        .finally(() => { pending[kind] = null })
+        .then((m: any) => {
+          if (kind === "hand") hand = m
+          else if (kind === "face") face = m
+          else pose = m
+        })
+        .catch((e: unknown) => console.warn(`[ai-avatar] "${kind}" unavailable:`, e))
+        .finally(() => {
+          pending[kind] = null
+        })
     }
     if (store.faceMode) ensureModel("face")
     if (store.handMode) ensureModel("hand")
@@ -70,12 +76,20 @@ export function useTracking(enabled) {
         video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
         audio: false,
       })
-      if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return }
+      if (cancelled) {
+        stream.getTracks().forEach((t) => t.stop())
+        return
+      }
 
       video = document.createElement("video")
       Object.assign(video.style, {
-        position: "fixed", left: "-10px", top: "-10px",
-        width: "2px", height: "2px", opacity: "0", pointerEvents: "none",
+        position: "fixed",
+        left: "-10px",
+        top: "-10px",
+        width: "2px",
+        height: "2px",
+        opacity: "0",
+        pointerEvents: "none",
       })
       video.muted = true
       video.playsInline = true
@@ -84,31 +98,43 @@ export function useTracking(enabled) {
       await video.play()
       lastVideoTime = -1
 
-      let uiFace = null, uiSpeaking = null, uiBody = null, uiSeated = null, uiGesture = null
+      let uiFace: boolean | null = null
+      let uiSpeaking: boolean | null = null
+      let uiBody: boolean | null = null
+      let uiSeated: boolean | null = null
+      let uiGesture: string | null = null
       let guideTimer = 0
-      let votes = []
-      let candidate = null
-      let candidateSince = 0
-      let stable = null
-      let wavePts = []
 
-      const processFace = (res) => {
+      let votes: (string | null)[] = []
+      let candidate: string | null = null
+      let candidateSince = 0
+      let stable: string | null = null
+      let wavePts: { t: number; x: number }[] = []
+
+      const processFace = (res: any) => {
         const lm = res?.faceLandmarks?.[0]
         const present = !!lm
         store.facePresent = present
-        if (present !== uiFace) { uiFace = present; setFacePresent(present) }
+        if (present !== uiFace) {
+          uiFace = present
+          setFacePresent(present)
+        }
 
         const cats = res?.faceBlendshapes?.[0]?.categories
-        const shapes = {}
+        const shapes: Record<string, number> = {}
         if (cats) for (const c of cats) shapes[c.categoryName] = c.score
         store.blendshapes = shapes
 
         if (lm) {
-          const nose = lm[1], Le = lm[234], R = lm[454]
+          const nose = lm[1]
+          const Le = lm[234]
+          const R = lm[454]
           const dl = Math.hypot(nose.x - Le.x, nose.y - Le.y)
           const dr = Math.hypot(nose.x - R.x, nose.y - R.y)
           store.headYaw = clamp(((dr - dl) / (dl + dr + 1e-6)) * 2.2, -1, 1)
-          const brow = lm[168], fore = lm[10], chin = lm[152]
+          const brow = lm[168]
+          const fore = lm[10]
+          const chin = lm[152]
           const fh = Math.hypot(fore.x - chin.x, fore.y - chin.y) || 1e-6
           store.headPitch = clamp(((nose.y - brow.y) / fh) * 2.6 - 0.62, -1, 1)
           const jaw = shapes.jawOpen ?? 0
@@ -119,10 +145,13 @@ export function useTracking(enabled) {
           store.headPitch = 0
           store.speaking = false
         }
-        if (store.speaking !== uiSpeaking) { uiSpeaking = store.speaking; setSpeaking(store.speaking) }
+        if (store.speaking !== uiSpeaking) {
+          uiSpeaking = store.speaking
+          setSpeaking(store.speaking)
+        }
       }
 
-      const processHand = (res, now) => {
+      const processHand = (res: any, now: number) => {
         const lm = res?.landmarks?.[0]
         store.handPresent = !!lm
 
@@ -132,7 +161,10 @@ export function useTracking(enabled) {
           if (stable && now - candidateSince > LOSE_MS) {
             stable = null
             setGestureMood(null)
-            if (uiGesture !== null) { uiGesture = null; setGesture(null) }
+            if (uiGesture !== null) {
+              uiGesture = null
+              setGesture(null)
+            }
           }
           return
         }
@@ -141,12 +173,16 @@ export function useTracking(enabled) {
         votes.push(classifyGesture(lm))
         if (votes.length > VOTE_FRAMES) votes.shift()
 
-        const counts = {}
-        let best = null, bestN = 0
+        const counts: Record<string, number> = {}
+        let best: string | null = null
+        let bestN = 0
         for (const v of votes)
           if (v) {
             counts[v] = (counts[v] || 0) + 1
-            if (counts[v] > bestN) { best = v; bestN = counts[v] }
+            if (counts[v] > bestN) {
+              best = v
+              bestN = counts[v]
+            }
           }
         const voted = bestN >= 3 ? best : null
 
@@ -167,7 +203,8 @@ export function useTracking(enabled) {
         if (stable === "palm") {
           wavePts.push({ t: now, x: store.handX })
           wavePts = wavePts.filter((p) => now - p.t < 1400)
-          let changes = 0, lastDir = 0
+          let changes = 0
+          let lastDir = 0
           for (let i = 1; i < wavePts.length; i++) {
             const dx = wavePts[i].x - wavePts[i - 1].x
             if (Math.abs(dx) < 0.012) continue
@@ -186,7 +223,7 @@ export function useTracking(enabled) {
         setGestureMood(moodId)
       }
 
-      const processBody = (res) => {
+      const processBody = (res: any) => {
         const lm = res?.worldLandmarks?.[0]
         const d = readBodyDiagnostics(lm)
 
@@ -195,8 +232,14 @@ export function useTracking(enabled) {
         store.bodyWorld = ok ? lm : null
         store.seated = ok && !hipsVisibleDetect(lm) && d.thighs > 0.4
 
-        if (store.bodyPresent !== uiBody) { uiBody = store.bodyPresent; setBodyPresent(store.bodyPresent) }
-        if (store.seated !== uiSeated) { uiSeated = store.seated; setSeated(store.seated) }
+        if (store.bodyPresent !== uiBody) {
+          uiBody = store.bodyPresent
+          setBodyPresent(store.bodyPresent)
+        }
+        if (store.seated !== uiSeated) {
+          uiSeated = store.seated
+          setSeated(store.seated)
+        }
 
         const now = performance.now()
         if (now - guideTimer > 500) {
@@ -214,12 +257,18 @@ export function useTracking(enabled) {
 
       const resetFaceState = () => {
         store.facePresent = false
-        store.blendshapes = {}
+        store.blendshapes = {} as Record<string, number>
         store.headYaw = 0
         store.headPitch = 0
         store.speaking = false
-        if (uiFace !== false) { uiFace = false; setFacePresent(false) }
-        if (uiSpeaking !== false) { uiSpeaking = false; setSpeaking(false) }
+        if (uiFace !== false) {
+          uiFace = false
+          setFacePresent(false)
+        }
+        if (uiSpeaking !== false) {
+          uiSpeaking = false
+          setSpeaking(false)
+        }
       }
       const resetHandState = () => {
         votes.length = 0
@@ -229,14 +278,23 @@ export function useTracking(enabled) {
         store.handPresent = false
         store.handX = 0.5
         setGestureMood(null)
-        if (uiGesture !== null) { uiGesture = null; setGesture(null) }
+        if (uiGesture !== null) {
+          uiGesture = null
+          setGesture(null)
+        }
       }
       const resetBodyState = () => {
         store.bodyPresent = false
         store.seated = false
         store.bodyWorld = null
-        if (uiBody !== false) { uiBody = false; setBodyPresent(false) }
-        if (uiSeated !== false) { uiSeated = false; setSeated(false) }
+        if (uiBody !== false) {
+          uiBody = false
+          setBodyPresent(false)
+        }
+        if (uiSeated !== false) {
+          uiSeated = false
+          setSeated(false)
+        }
         setGuide("")
       }
 
@@ -251,21 +309,33 @@ export function useTracking(enabled) {
 
         if (store.faceMode) {
           if (!face) ensureModel("face")
-          else { try { processFace(face.detectForVideo(video, nextFaceTs())) } catch {} }
+          else {
+            try {
+              processFace(face.detectForVideo(video, nextFaceTs()))
+            } catch {}
+          }
         } else resetFaceState()
 
         if (store.handMode) {
           if (!hand) ensureModel("hand")
-          else { try { processHand(hand.detectForVideo(video, nextHandTs()), performance.now()) } catch {} }
+          else {
+            try {
+              processHand(hand.detectForVideo(video, nextHandTs()), performance.now())
+            } catch {}
+          }
         } else resetHandState()
 
         if (store.bodyMode !== "off") {
           if (!pose) ensureModel("pose")
-          else { try { processBody(pose.detectForVideo(video, nextPoseTs())) } catch {} }
+          else {
+            try {
+              processBody(pose.detectForVideo(video, nextPoseTs()))
+            } catch {}
+          }
         } else resetBodyState()
       }
       raf = requestAnimationFrame(loop)
-    } catch (err) {
+    } catch (err: any) {
       if (cancelled) return
       const message =
         err?.name === "NotAllowedError"

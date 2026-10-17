@@ -4,25 +4,31 @@ import { useEffect } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { Check, Users, X } from "lucide-react"
 
-export const AVATARS = [
-    { id: "avatar1", name: "Mikasa"},
-    { id: "avatar2", name: "Levi"},
-    { id: "avatar3", name: "Yuno"},
-    { id: "avatar4", name: "Sakura"},
-    { id: "avatar5", name: "Nezuko"},
-    { id: "avatar6", name: "Kakashi"},
-    { id: "avatar7", name: "Asta"},
-    { id: "avatar8", name: "Marin"},
-    { id: "avatar9", name: "Kanao"},
-    { id: "avatar10", name: "Roronoa"},
-    { id: "avatar11", name: "Tanjiro"},
-    { id: "avatar", name: "Hinata"},
+export interface AvatarEntry {
+  id: string
+  name: string
+  emoji: string
+}
+
+export const AVATARS: AvatarEntry[] = [
+  { id: "avatar", name: "Original", emoji: "🎭" },
+  { id: "avatar1", name: "Avatar 1", emoji: "🧑" },
+  { id: "avatar2", name: "Avatar 2", emoji: "👩" },
+  { id: "avatar3", name: "Avatar 3", emoji: "🧔" },
+  { id: "avatar4", name: "Avatar 4", emoji: "👱" },
+  { id: "avatar5", name: "Avatar 5", emoji: "👩‍🦰" },
+  { id: "avatar6", name: "Avatar 6", emoji: "🧑‍🦱" },
+  { id: "avatar7", name: "Avatar 7", emoji: "👨‍🦳" },
+  { id: "avatar8", name: "Avatar 8", emoji: "👩‍🦱" },
+  { id: "avatar9", name: "Avatar 9", emoji: "🧑‍🎤" },
+  { id: "avatar10", name: "Avatar 10", emoji: "🥷" },
+  { id: "avatar11", name: "Avatar 11", emoji: "🌟" },
 ]
 
 export const DEFAULT_AVATAR = "avatar11"
 const STORAGE_KEY = "avatarpuppet:avatar"
 
-export function getSavedAvatar() {
+export function getSavedAvatar(): string {
   if (typeof window === "undefined") return DEFAULT_AVATAR
   try {
     return localStorage.getItem(STORAGE_KEY) || DEFAULT_AVATAR
@@ -31,18 +37,34 @@ export function getSavedAvatar() {
   }
 }
 
-export function saveAvatar(id) {
-  try { localStorage.setItem(STORAGE_KEY, id) } catch {}
+export function saveAvatar(id: string) {
+  try {
+    localStorage.setItem(STORAGE_KEY, id)
+  } catch {}
 }
 
-export function avatarUrl(id) {
+export function avatarUrl(id: string) {
   return `/${id}.vrm`
 }
 
-export function AvatarPicker({ open, onOpenChange, current, available, thumbs, onSelect }) {
+export function AvatarPicker({
+  open,
+  onOpenChange,
+  current,
+  available,
+  thumbs,
+  onSelect,
+}: {
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  current: string
+  available: string[]
+  thumbs: Record<string, string>
+  onSelect: (id: string) => void
+}) {
   useEffect(() => {
     if (!open) return
-    const onKey = (e) => e.key === "Escape" && onOpenChange(false)
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onOpenChange(false)
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [open, onOpenChange])

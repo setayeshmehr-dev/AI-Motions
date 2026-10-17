@@ -1,46 +1,44 @@
 // Shared mutable store — written by the tracking loop (rAF), read inside
-// useFrame. Deliberately NOT React state: 60fps writes must not re-render.
+// useFrame. NOT React state: 60fps writes must not re-render.
+
+type Blendshapes = Record<string, number>
 
 export const store = {
-  // face
   facePresent: false,
-  blendshapes: {},
+  blendshapes: {} as Blendshapes,
   headYaw: 0,
   headPitch: 0,
   speaking: false,
-  // toggles
   faceMode: true,
-  handMode: true, // gesture moods (hand tracking)
-  bodyMode: "auto", // "auto" | "standing" | "seated" | "off"
-  // body mirror
+  handMode: true,
+  bodyMode: "auto" as string, // "auto" | "standing" | "seated" | "off"
   bodyPresent: false,
   seated: false,
-  bodyWorld: null,
-  // gesture mood (null | gesture id) — drives face reactions + hops
-  gestureMood: null,
+  bodyWorld: null as any,
+  gestureMood: null as string | null,
   gestureMoodAt: 0,
-  // hand presence
   handPresent: false,
   handX: 0.5,
-  // live guidance
   guide: "",
 }
 
-const listeners = new Set()
+const listeners = new Set<(g: string) => void>()
 
-export function setGuide(g) {
+export function setGuide(g: string) {
   if (store.guide === g) return
   store.guide = g
   for (const fn of listeners) fn(g)
 }
 
-export function onGuideChange(fn) {
+export function onGuideChange(fn: (g: string) => void) {
   listeners.add(fn)
-  return () => listeners.delete(fn)
+  // must return void (React Destructor) — NOT a boolean
+  return () => {
+    listeners.delete(fn)
+  }
 }
 
-/** Set (or clear with null) the active gesture mood. */
-export function setGestureMood(id) {
+export function setGestureMood(id: string | null) {
   if (store.gestureMood === id) return
   store.gestureMood = id
   store.gestureMoodAt = performance.now()
@@ -48,7 +46,7 @@ export function setGestureMood(id) {
 
 export function resetStore() {
   store.facePresent = false
-  store.blendshapes = {}
+  store.blendshapes = {} as Blendshapes
   store.headYaw = 0
   store.headPitch = 0
   store.speaking = false

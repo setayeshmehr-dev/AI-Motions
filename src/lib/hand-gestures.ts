@@ -1,9 +1,16 @@
-// Geometric classifier — 21 hand landmarks → one of 10 gestures.
-// Same proven logic as the original GesturePass classifier.
+// Geometric hand-gesture classifier — shared by BOTH parts:
+//  · Auth:   the 6-gesture password (signup / signin)
+//  · Mirror: emotional gesture moods (welcome)
 
-const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y)
+export interface Landmark {
+  x: number
+  y: number
+  z: number
+}
 
-export function classifyGesture(lm) {
+const dist = (a: Landmark, b: Landmark) => Math.hypot(a.x - b.x, a.y - b.y)
+
+export function classifyGesture(lm: Landmark[]): string | null {
   if (!lm || lm.length < 21) return null
   const palm = dist(lm[0], lm[9]) || 1e-6
 
@@ -33,10 +40,14 @@ export function classifyGesture(lm) {
   return null
 }
 
-/* Each gesture → an emotional MOOD (blendshape boosts + reaction),
-   not a physical arm pose — the body mirror stays in charge of the arms.
-   `wave` is detected separately from palm + side-to-side motion. */
-export const GESTURE_MOODS = {
+/* Mirror-only: each gesture → an emotional MOOD (face + body reaction). */
+export interface GestureMood {
+  expr: Record<string, number>
+  reaction: "joy" | "droop" | "wink" | "nod" | "bounce" | null
+  head: [number, number, number]
+}
+
+export const GESTURE_MOODS: Record<string, GestureMood> = {
   "thumbs-up": { expr: { happy: 0.85 }, reaction: "joy", head: [-6, 0, 3] },
   "thumbs-down": { expr: { sad: 0.7 }, reaction: "droop", head: [10, 0, 0] },
   peace: { expr: { happy: 0.35 }, reaction: "wink", head: [0, -6, 5] },
@@ -46,6 +57,6 @@ export const GESTURE_MOODS = {
   call: { expr: { happy: 0.3 }, reaction: "nod", head: [-4, 0, 8] },
   fist: { expr: { angry: 0.55 }, reaction: "nod", head: [0, 0, 0] },
   point: { expr: { surprised: 0.25 }, reaction: null, head: [-6, 0, 0] },
-  palm: { expr: {}, reaction: null, head: [0, 0, 0] }, // wave is layered on top
+  palm: { expr: {}, reaction: null, head: [0, 0, 0] },
   wave: { expr: { happy: 0.8 }, reaction: "bounce", head: [0, 0, -4] },
 }
