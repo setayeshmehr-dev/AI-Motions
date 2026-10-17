@@ -167,7 +167,7 @@ export function AvatarPicker({
             {/* footer */}
             <div className="border-t border-border/50 bg-card/75 px-5 py-3 text-center text-xs text-muted-foreground backdrop-blur-xl">
               Your choice is remembered on this device. Default:{" "}
-              <b className="text-foreground">Avatar 11</b>
+              <b className="text-foreground">Saitama</b>
             </div>
           </motion.div>
         </motion.div>
