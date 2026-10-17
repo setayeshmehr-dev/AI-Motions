@@ -1,81 +1,120 @@
-// Avatar-mirror documentation (renamed from documentation.js to avoid
-// clashing with GesturePass's lib/documentation.ts).
+// Unified documentation — Face ID auth + the avatar mirror.
 
 export const DOC_CONTENT = {
   fa: {
-    title: "آینه‌ی آواتار چگونه کار می‌کند؟",
+    title: "فناوری‌های پروژه — همه‌ی مدل‌ها",
     intro:
-      "دو موتور بینایی ماشین، بدن و چهره‌ی شما را به یک آواتار سه‌بعدی منتقل می‌کنند. همه‌چیز on-device و داخل مرورگر شما اجرا می‌شود و هیچ فریمی از دوربین نمایش داده یا ارسال نمی‌شود.",
+      "این پروژه از چند موتور بینایی ماشینِ متن‌باز ساخته شده: احراز هویت با چهره (Face ID) و آینه‌ی زنده‌ی آواتار (بدن، چهره و دست). همه‌چیز on-device و داخل مرورگر شما اجرا می‌شود و هیچ فریمی از دوربین نمایش داده، ذخیره یا ارسال نمی‌شود.",
     sections: [
-      { heading: "۱) ردیابی بدن — MediaPipe Pose Landmarker", blocks: [
-        { type: "p", text: "مدل Pose Landmarker از خانواده‌ی MediaPipe (متن‌باز، محصول Google Research) ۳۳ لندمارک سه‌بعدی از کل بدن استخراج می‌کند — شونه، آرنج، مچ، باسن، زانو و مچ پا. موقعیت‌های جهانی (World Landmarks) مستقل از موقعیت شما در کادر، جهت واقعی اندام‌ها را می‌دهند و با WebAssembly و در صورت پشتیبانی روی GPU اجرا می‌شوند." },
+      { heading: "بخش اول — احراز هویت 🗝", blocks: [
+        { type: "p", text: "این بخش در صفحات ثبت‌نام و ورود فعال است. هویت شما با چهره‌تان تأیید می‌شود — چیزی که «هستید»." },
       ]},
-      { heading: "۲) حل‌کننده‌ی بدن (Body Solver)", blocks: [
-        { type: "p", text: "لندمارک‌ها با روش هدف‌گیری زنجیره‌ای (Chain Aiming) به چرخش استخوان‌های اسکلت آواتار تبدیل می‌شوند: جهت شونه→آرنج بازو را می‌سازد و آرنج→مچ ساعد را. جهت چرخش تنه از خط شونه‌ها نسبت به خط باسن و خمش تنه از راستای لگن تا شونه محاسبه می‌شود. حالت نشسته با پنهان‌شدن باسن و دیده‌شدن زانوها تشخیص داده می‌شود." },
+
+      { heading: "۱) Face ID — تشخیص و زنده‌بودن چهره", blocks: [
+        { type: "p", text: "برای Face ID دو مدل با هم کار می‌کنند. اول، مدل Face Landmarker از خانواده‌ی MediaPipe که ۴۷۸ لندمارک روی صورت (شامل عنبیه‌ی چشم‌ها) به‌همراه ۵۲ Blendshape استخراج می‌کند — امتیاز جداگانه برای هر حرکت ریز صورت مانند میزان پلک‌زدن یا لبخند (همان مجموعه‌ای که ARKit اپل استفاده می‌کند)." },
+        { type: "p", text: "دوم، برای تطبیق هویت از مدل FaceRecognitionNet (از کتابخانه‌ی متن‌باز face-api با معماری ResNet-34 — یکی از معروف‌ترین شبکه‌های کانولوشنی) استفاده می‌شود که چهره را به یک بردار ۱۲۸ بُعدی تبدیل می‌کند؛ نوعی «امضای عددی» از چهره. هنگام ورود، بردار تازه با بردار ذخیره‌شده‌ی ثبت‌نام از طریق فاصله‌ی اقلیدسی مقایسه می‌شود و اگر فاصله از آستانه کمتر باشد، هویت تأیید می‌شود." },
+        { type: "p", text: "برای اینکه عکس چاپ‌شده نتواند جای شما وارد شود، پیش از تطبیق، چالش‌های تصادفیِ زنده‌بودن پرسیده می‌شود: پلک‌زدن (از روی Blendshape چشم‌ها)، چرخاندن سر یا لبخند. تنها پس از موفقیت در چالش‌ها، بردار هویت گرفته و مقایسه می‌شود." },
       ]},
-      { heading: "۳) ردیابی چهره — MediaPipe Face Landmarker", blocks: [
-        { type: "p", text: "۴۷۸ لندمارک روی صورت به‌همراه ۵۲ Blendshape (امتیاز جداگانه برای هر حرکت ریز صورت: پلک چپ/راست، لبخند، فک، ابروها) استخراج می‌شود — همان مجموعه‌ی ARKit. پلک‌ها به‌صورت مستقل و بدون تأخیر مپ می‌شوند و خماری ندارند؛ لب‌ها با حرف زدن شما هم‌زمان حرکت می‌کنند." },
+
+      { heading: "بخش دوم — آینه‌ی آواتار 🪞", blocks: [
+        { type: "p", text: "این بخش پس از ورود فعال است: بدن، چهره و دست‌های شما به‌صورت زنده به یک آواتار سه‌بعدی منتقل می‌شوند." },
       ]},
-      { heading: "۴) تشخیص ژست دست — الگوریتم هندسی", blocks: [
-        { type: "p", text: "مدل Hand Landmarker با ۲۱ نقطه‌ی دست، شکل دست را می‌خواند و الگوریتمی هندسی آن را به یکی از ده ژست (👍 👎 ✌️ 🤟 🤘 ✊ 👌 🤙 ☝️ ✋) تبدیل می‌کند. هر ژست یک «حالتهای احساسی» فعال می‌کند: لبخند، ناراحتی، چشمک، پرش ذوق — بدون دخالت در حرکت دست‌ها که کاملاً بر عهده‌ی آینه‌ی بدن است. بای‌بای (پنجه‌ی باز + تکان افقی) هم جداگانه تشخیص داده می‌شود." },
+
+      { heading: "۲) آینه‌ی بدن — MediaPipe Pose Landmarker", blocks: [
+        { type: "p", text: "مدل Pose Landmarker با ۳۳ لندمارک سه‌بعدی، کل بدن شما را ردیابی می‌کند — شونه، آرنج، مچ، باسن، زانو و مچ پا. موقعیت‌های جهانی (World Landmarks) جهت واقعی اندام‌ها را مستقل از جای شما در کادر می‌دهند." },
+        { type: "p", text: "یک حل‌کننده‌ی هندسی (Body Solver) این نقاط را با روش هدف‌گیری زنجیره‌ای به چرخش استخوان‌های آواتار تبدیل می‌کند: جهت شونه→آرنج بازو را می‌نشاند و آرنج→مچ ساعد را؛ چرخش تنه از مقایسه‌ی خط شونه‌ها با خط لگن و خمش از راستای لگن تا شونه محاسبه می‌شود. حالت نشسته (پنهان‌شدن باسن با دیده‌شدن زانوها) خودکار تشخیص داده می‌شود." },
       ]},
-      { heading: "۵) پایداری زمانی", blocks: [
-        { type: "p", text: "خروجی مدل‌ها روی ۵ فریم آخر رأی‌گیری اکثریت می‌شود و هر ژست باید حدود ۰/۶ ثانیه پایدار بماند تا فعال شود؛ چرخش استخوان‌ها نیز با میان‌یابی نرم دنبال هدف می‌رود تا حرکت آواتار لرزش نداشته باشد." },
+
+      { heading: "۳) آینه‌ی چهره — ۵۲ Blendshape", blocks: [
+        { type: "p", text: "همان مدل Face Landmarker، به‌صورت پیوسته اجرا می‌شود: پلک چپ و راست مستقل از هم و بدون تأخیر مپ می‌شوند (چشمک زدن با یک چشم کار می‌کند!)، لبخند، اخم، ناراحتی و تعجب از ترکیب چند Blendshape تشخیص داده می‌شوند، لب‌ها با حرف زدن شما هم‌زمان باز و بسته می‌شوند و سر آواتار چرخش سر شما را دنبال می‌کند." },
       ]},
-      { heading: "۶) جدول مدل‌ها", blocks: [
-        { type: "table", head: ["مدل", "نقش", "لایسنس"], rows: [
-          ["MediaPipe Pose Landmarker", "۳۳ لندمارک کل بدن", "Apache 2.0"],
-          ["MediaPipe Face Landmarker", "۴۷۸ لندمارک + ۵۲ Blendshape", "Apache 2.0"],
-          ["MediaPipe Hand Landmarker", "۲۱ لندمارک دست", "Apache 2.0"],
-          ["Body Solver هندسی", "لندمارک → چرخش استخوان‌ها", "اختصاصی پروژه"],
-          ["three.js / VRM (VRoid)", "رندر و اسکلت آواتار", "MIT"],
+
+      { heading: "۴) ژست‌های احساسی — دست به‌عنوان فرمان", blocks: [
+        { type: "p", text: "مدل Hand Landmarker با ۲۱ نقطه‌ی دست، شکل دست را می‌خواند و الگوریتمی هندسی آن را به یکی از ده ژست (👍 👎 ✌️ 🤟 🤘 ✊ 👌 🤙 ☝️ ✋) تبدیل می‌کند. هر ژست یک «حالت احساسی» فعال می‌کند: 👍 لبخند بزرگ و پرش ذوق، 👎 ناراحتی و افتادن سر، ✌️ چشمک و لبخند. این ژست‌ها فقط چهره و واکنش بدن را هدایت می‌کنند و به حرکت دست‌ها دست نمی‌زنند — دست‌ها کاملاً بر عهده‌ی آینه‌ی بدن هستند. بای‌بای هم از خود حرکت شما خوانده می‌شود: پنجه‌ی باز + تکان افقی = لبخند و موج." },
+      ]},
+
+      { heading: "۵) رندر سه‌بعدی — three.js و VRM", blocks: [
+        { type: "p", text: "آواتارها فایل‌های VRM (خروجی VRoid Studio) هستند که با three.js و افزونه‌ی three-vrm رندر می‌شوند. چرخش استخوان‌ها با میان‌یابی کوآترنیونِ نرم اعمال می‌شود و سیستم هم نسل‌های قدیمی و جدید VRM را تشخیص می‌دهد و جهت ایستادن آواتار را خودکار درست می‌کند." },
+      ]},
+
+      { heading: "۶) جدول کامل مدل‌ها", blocks: [
+        { type: "table", head: ["مدل / فناوری", "بخش", "نقش", "لایسنس"], rows: [
+          ["MediaPipe Face Landmarker", "احراز هویت + آینه", "۴۷۸ لندمارک + ۵۲ Blendshape", "Apache 2.0"],
+          ["face-api FaceRecognitionNet", "احراز هویت", "بردار ۱۲۸ بُعدی هویت چهره (ResNet-34)", "MIT"],
+          ["چالش‌های زنده‌بودن", "احراز هویت", "ضد جعل با عکس (پلک/چرخش/لبخند)", "اختصاصی پروژه"],
+          ["MediaPipe Pose Landmarker", "آینه", "۳۳ لندمارک کل بدن", "Apache 2.0"],
+          ["Body Solver هندسی", "آینه", "لندمارک → چرخش استخوان‌ها", "اختصاصی پروژه"],
+          ["MediaPipe Hand Landmarker", "آینه", "۲۱ لندمارک دست → ژست‌های احساسی", "Apache 2.0"],
+          ["three.js / three-vrm", "آینه", "رندر و اسکلت آواتار VRM", "MIT"],
         ]},
       ]},
+
       { heading: "۷) حریم خصوصی", blocks: [
         { type: "list", items: [
-          "ویدیوی دوربین هرگز نمایش داده یا جایی ارسال نمی‌شود — فقط ورودی مدل‌هاست.",
-          "هیچ تصویری ذخیره نمی‌شود؛ هیچ داده‌ای از این صفحه خارج نمی‌شود.",
+          "ویدیوی دوربین هرگز نمایش داده، ذخیره یا ارسال نمی‌شود — فقط ورودی مدل‌هاست.",
+          "تنها داده‌ی ذخیره‌شده: بردار ۱۲۸ بُعدی چهره — به‌صورت محلی در مرورگر خودتان.",
+          "پس از اولین بارگذاری، مدل‌ها از کش مرورگر خوانده می‌شوند.",
           "آواتارها فایل‌هایی هستند که خودتان در پوشه‌ی public قرار داده‌اید.",
-          "همه‌ی مدل‌ها متن‌باز و رایگان‌اند.",
+          "همه‌ی مدل‌ها متن‌باز و رایگان‌اند (Apache 2.0 و MIT).",
         ]},
       ]},
     ],
   },
   en: {
-    title: "How the avatar mirror works",
+    title: "Project technologies — every model",
     intro:
-      "Two computer-vision engines drive a 3D avatar with your body and face. Everything runs on-device inside your browser — the camera feed is never displayed or uploaded.",
+      "This project is built from several open-source computer-vision engines: Face ID authentication and the live avatar mirror (body, face and hands). Everything runs on-device inside your browser — no camera frame is ever displayed, stored or uploaded.",
     sections: [
-      { heading: "1) Body tracking — MediaPipe Pose Landmarker", blocks: [
-        { type: "p", text: "The Pose Landmarker model from Google's open-source MediaPipe family extracts 33 3D landmarks across the whole body — shoulders, elbows, wrists, hips, knees and ankles. World landmarks give true limb directions regardless of where you stand in the frame; execution is WebAssembly with GPU offload when available." },
+      { heading: "Part 1 — Authentication 🗝", blocks: [
+        { type: "p", text: "Active on the sign-up and sign-in pages. Your identity is verified with your face — something you are." },
       ]},
-      { heading: "2) The body solver", blocks: [
-        { type: "p", text: "Landmarks become avatar bone rotations through chain aiming: the shoulder→elbow direction aims the upper arm, elbow→wrist aims the forearm. Torso twist comes from the shoulder line vs the hip line, lean from the hips→shoulders axis. Seated mode is detected when the hips disappear while the knees stay visible." },
+
+      { heading: "1) Face ID — detection & liveness", blocks: [
+        { type: "p", text: "Face ID combines two models. First, the Face Landmarker (MediaPipe family) extracts 478 facial landmarks including the irises, plus 52 Blendshapes — a separate score for every micro-movement such as blink amount or smile (the same set Apple's ARKit uses)." },
+        { type: "p", text: "Second, for identity matching, FaceRecognitionNet (from the open-source face-api library, a ResNet-34 — one of the most famous convolutional networks) turns your face into a 128-dimensional vector — a numeric signature. At sign-in, the fresh vector is compared to the stored one via Euclidean distance; below the threshold means a match." },
+        { type: "p", text: "To stop a printed photo from signing in as you, random liveness challenges are requested first: blinking (from the eye blendshapes), turning your head, or smiling. Only after passing does identity matching begin." },
       ]},
-      { heading: "3) Face tracking — MediaPipe Face Landmarker", blocks: [
-        { type: "p", text: "478 facial landmarks plus 52 Blendshapes — a separate score for every micro-movement (per-eye blinks, smile, jaw, brows) — the same set Apple's ARKit uses. Blinks map independently with no lag or sleepiness, and the mouth syncs live as you speak." },
+
+      { heading: "Part 2 — The avatar mirror 🪞", blocks: [
+        { type: "p", text: "Active after sign-in: your body, face and hands are streamed live onto a 3D avatar." },
       ]},
-      { heading: "4) Hand gestures — geometric classifier", blocks: [
-        { type: "p", text: "The Hand Landmarker reads 21 points per hand and a geometric algorithm maps the shape to one of ten gestures (👍 👎 ✌️ 🤟 🤘 ✊ 👌 🤙 ☝️ ✋). Each gesture triggers an emotional mood — a smile, a frown, a wink, a joyful hop — without touching the arms, which stay fully mirrored. Waving (open palm + side-to-side shake) is detected separately." },
+
+      { heading: "2) Body mirror — MediaPipe Pose Landmarker", blocks: [
+        { type: "p", text: "The Pose Landmarker tracks your whole body with 33 3D landmarks — shoulders, elbows, wrists, hips, knees and ankles. World landmarks give true limb directions regardless of your position in the frame." },
+        { type: "p", text: "A geometric body solver converts these points into avatar bone rotations via chain aiming: shoulder→elbow aims the upper arm, elbow→wrist the forearm; torso twist compares the shoulder line to the hip line. Seated mode (hips hidden, knees visible) is detected automatically." },
       ]},
-      { heading: "5) Temporal smoothing", blocks: [
-        { type: "p", text: "Model outputs pass through a 5-frame majority vote, gestures must hold ~0.6s to activate, and bone rotations chase their targets with smooth interpolation — so the avatar never jitters." },
+
+      { heading: "3) Face mirror — 52 blendshapes", blocks: [
+        { type: "p", text: "The same Face Landmarker runs continuously: left and right eyelids map independently with no lag (one-eyed winks work!), smile, anger, sadness and surprise are read from blendshape combinations, the mouth syncs as you speak, and the avatar's head follows yours." },
       ]},
-      { heading: "6) Model summary", blocks: [
-        { type: "table", head: ["Model", "Role", "License"], rows: [
-          ["MediaPipe Pose Landmarker", "33 whole-body landmarks", "Apache 2.0"],
-          ["MediaPipe Face Landmarker", "478 landmarks + 52 blendshapes", "Apache 2.0"],
-          ["MediaPipe Hand Landmarker", "21 hand landmarks", "Apache 2.0"],
-          ["Geometric body solver", "landmarks → bone rotations", "Project-specific"],
-          ["three.js / VRM (VRoid)", "rendering & rig", "MIT"],
+
+      { heading: "4) Emotional gestures — hands as commands", blocks: [
+        { type: "p", text: "The Hand Landmarker reads 21 points per hand and a geometric algorithm maps the shape to one of ten gestures (👍 👎 ✌️ 🤟 🤘 ✊ 👌 🤙 ☝️ ✋). Each gesture triggers an emotional mood — 👍 a big smile and a joyful hop, 👎 sadness, ✌️ a wink. These only steer face and body reactions; the arms stay fully mirrored. Waving (open palm + side-to-side shake) is read from your actual motion." },
+      ]},
+
+      { heading: "5) 3D rendering — three.js & VRM", blocks: [
+        { type: "p", text: "The avatars are VRM files (VRoid Studio) rendered with three.js and three-vrm. Bone rotations are applied with smooth quaternion interpolation, and the system auto-detects both VRM generations so every avatar faces the camera correctly." },
+      ]},
+
+      { heading: "6) Complete model table", blocks: [
+        { type: "table", head: ["Model / tech", "Part", "Role", "License"], rows: [
+          ["MediaPipe Face Landmarker", "Auth + Mirror", "478 landmarks + 52 blendshapes", "Apache 2.0"],
+          ["face-api FaceRecognitionNet", "Auth", "128-d face identity vector (ResNet-34)", "MIT"],
+          ["Liveness challenges", "Auth", "anti-spoofing (blink/turn/smile)", "Project-specific"],
+          ["MediaPipe Pose Landmarker", "Mirror", "33 whole-body landmarks", "Apache 2.0"],
+          ["Geometric body solver", "Mirror", "landmarks → bone rotations", "Project-specific"],
+          ["MediaPipe Hand Landmarker", "Mirror", "21 hand landmarks → emotional gestures", "Apache 2.0"],
+          ["three.js / three-vrm", "Mirror", "VRM avatar rendering & rig", "MIT"],
         ]},
       ]},
+
       { heading: "7) Privacy", blocks: [
         { type: "list", items: [
-          "The camera feed is never displayed or uploaded — it is model input only.",
-          "No image is stored; nothing leaves this page.",
+          "The camera feed is never displayed, stored or uploaded — it is model input only.",
+          "The only stored data: the 128-d face vector — locally, in your own browser.",
+          "After the first load, models are served from the browser cache.",
           "The avatars are simply the VRM files you placed in public/ yourself.",
-          "All models are open source and free.",
+          "All models are open source and free (Apache 2.0 and MIT).",
         ]},
       ]},
     ],

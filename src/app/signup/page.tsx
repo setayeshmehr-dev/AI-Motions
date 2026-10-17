@@ -6,25 +6,22 @@ import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { ArrowRight, WandSparkles } from "lucide-react"
 import { toast } from "sonner"
- 
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AuroraBackground } from "@/components/aurora-background"
 import { BrandLogo } from "@/components/brand-logo"
+import { DocumentationButton } from "@/components/documentation-button"
 import { FaceCaptureModal } from "@/components/face-capture-modal"
 import { FaceIdField } from "@/components/face-id-field"
-import { GesturePasswordField } from "@/components/gesture-password-field"
-import { GesturePasswordModal } from "@/components/gesture-password-modal"
-import { DEMO_USER, PASSWORD_LENGTH } from "@/lib/gestures"
+import { DEMO_USER } from "@/lib/gestures"
 import { getUser, saveUser } from "@/lib/storage"
 
 type SignupErrors = {
   firstName?: string
   lastName?: string
   email?: string
-  password?: string
   face?: string
 }
 
@@ -34,9 +31,7 @@ export default function SignupPage() {
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
-  const [pattern, setPattern] = useState<string[]>([])
   const [faceVector, setFaceVector] = useState<number[] | null>(null)
-  const [gestureModalOpen, setGestureModalOpen] = useState(false)
   const [faceModalOpen, setFaceModalOpen] = useState(false)
   const [errors, setErrors] = useState<SignupErrors>({})
   const [hasAccount, setHasAccount] = useState(false)
@@ -44,17 +39,7 @@ export default function SignupPage() {
   useEffect(() => {
     setHasAccount(!!getUser())
   }, [])
-    // If the browser restores this page from bfcache (back/forward buttons),
-  // reload so the form is always fresh and empty.
-  useEffect(() => {
-    const onPageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) window.location.reload()
-    }
-    window.addEventListener("pageshow", onPageShow)
-    return () => window.removeEventListener("pageshow", onPageShow)
-  }, [])
 
-  // Fills everything EXCEPT the password and Face ID
   const autoFill = () => {
     setFirstName(DEMO_USER.firstName)
     setLastName(DEMO_USER.lastName)
@@ -66,7 +51,7 @@ export default function SignupPage() {
       email: undefined,
     }))
     toast.success("Details auto-filled ✨", {
-      description: "Now add your gesture password and Face ID.",
+      description: "Now enroll your Face ID.",
     })
   }
 
@@ -78,8 +63,6 @@ export default function SignupPage() {
     if (lastName.trim().length < 2) errs.lastName = "Please enter your last name."
     if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(email.trim()))
       errs.email = "Enter a valid email address."
-    if (pattern.length !== PASSWORD_LENGTH)
-      errs.password = "Create your 6-gesture password first."
     if (!faceVector) errs.face = "Set up Face ID first."
     setErrors(errs)
 
@@ -92,7 +75,6 @@ export default function SignupPage() {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.trim().toLowerCase(),
-      gestures: pattern,
       faceVector: faceVector!,
     })
     toast.success("Account created 🎉", {
@@ -104,6 +86,7 @@ export default function SignupPage() {
   return (
     <main className="relative flex min-h-svh items-center justify-center px-4 py-16 sm:py-14">
       <AuroraBackground />
+      <DocumentationButton />
 
       <motion.div
         initial={{ opacity: 0, y: 24, scale: 0.98 }}
@@ -116,7 +99,7 @@ export default function SignupPage() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Create your account</h1>
             <p className="mt-1.5 text-sm text-muted-foreground">
-              Two keys: a 6-gesture password and your face.
+              One key: your face. Enroll once, sign in forever.
             </p>
           </div>
         </div>
@@ -165,8 +148,8 @@ export default function SignupPage() {
               id="email"
               type="email"
               placeholder="setayeshmehr@gmail.com"
-              autoComplete="off"
               className="h-11"
+              autoComplete="off"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               aria-invalid={!!errors.email}
@@ -174,17 +157,6 @@ export default function SignupPage() {
             {errors.email && (
               <p className="text-xs font-medium text-destructive">{errors.email}</p>
             )}
-          </div>
-
-          <div className="mt-4 space-y-1.5">
-            <Label htmlFor="gesture-password">Gesture password</Label>
-            <GesturePasswordField
-              id="gesture-password"
-              value={pattern}
-              mode="create"
-              error={errors.password}
-              onOpen={() => setGestureModalOpen(true)}
-            />
           </div>
 
           <div className="mt-4 space-y-1.5">
@@ -227,20 +199,6 @@ export default function SignupPage() {
           </p>
         </form>
       </motion.div>
-
-      <GesturePasswordModal
-        open={gestureModalOpen}
-        onOpenChange={setGestureModalOpen}
-        mode="create"
-        onComplete={(p) => {
-          setPattern(p)
-          setGestureModalOpen(false)
-          setErrors((e) => ({ ...e, password: undefined }))
-          toast.success("Pattern saved 🤟", {
-            description: "Now set up your Face ID.",
-          })
-        }}
-      />
 
       <FaceCaptureModal
         open={faceModalOpen}
