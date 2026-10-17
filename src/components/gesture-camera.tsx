@@ -8,7 +8,7 @@ import { CameraOff, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getGesture } from "@/lib/gestures"
 import { classifyGesture } from "@/lib/hand-gestures"
-import { getHandLandmarker } from "@/lib/hand-landmarker"
+import { getPasswordHandLandmarker, nextPasswordHandTs } from "@/lib/model-loaders"
 
 const HOLD_MS = 700 // how long a gesture must be held to be captured
 const VOTE_FRAMES = 5 // majority-vote window that kills classification flicker
@@ -117,7 +117,7 @@ export function GestureCamera({ active, onCapture, onUnavailable }: GestureCamer
       lastVideoTimeRef.current = video.currentTime
       let landmarks: any[] | null = null
       try {
-        const result = landmarker.detectForVideo(video, lastDetectTs)
+        const result = landmarker.detectForVideo(video, nextPasswordHandTs())
         landmarks = (result.landmarks?.[0] as any[] | undefined) ?? null
       } catch {
         return
@@ -191,7 +191,7 @@ export function GestureCamera({ active, onCapture, onUnavailable }: GestureCamer
 
     ;(async () => {
       try {
-        const landmarker = await getHandLandmarker()
+        const landmarker = await getPasswordHandLandmarker()        
         if (cancelled) return
         landmarkerRef.current = landmarker
 

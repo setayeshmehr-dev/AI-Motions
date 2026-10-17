@@ -93,3 +93,35 @@ let poseTs = 0
 export const nextHandTs = () => (handTs = Math.max(performance.now(), handTs + 1))
 export const nextFaceTs = () => (faceTs = Math.max(performance.now(), faceTs + 1))
 export const nextPoseTs = () => (poseTs = Math.max(performance.now(), poseTs + 1))
+
+/* Separate hand landmarker for the gesture PASSWORD (single hand). */
+let passwordHandPromise = null
+let passwordHandTs = 0
+
+export function getPasswordHandLandmarker() {
+  if (!passwordHandPromise) {
+    passwordHandPromise = (async () => {
+      const vision = await import("@mediapipe/tasks-vision")
+      const fileset = await vision.FilesetResolver.forVisionTasks(WASM)
+      const urls = MODEL_SOURCES.hand
+      const build = (delegate) =>
+        vision.HandLandmarker.createFromOptions(fileset, {
+          baseOptions: { modelAssetPath: urls[0], delegate },
+          runningMode: "VIDEO",
+          numHands: 1,
+        })
+      try {
+        return await build("GPU")
+      } catch {
+        return await build("CPU")
+      }
+    })().catch((e) => {
+      passwordHandPromise = null
+      throw e
+    })
+  }
+  return passwordHandPromise
+}
+
+export const nextPasswordHandTs = () =>
+  (passwordHandTs = Math.max(performance.now(), passwordHandTs + 1))

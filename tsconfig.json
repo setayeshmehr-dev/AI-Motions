@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-, "src/lib/hand-gestures.js", "src/lib/avatar-docs.js"  ],
+, "src/lib/hand-gestures.js", "src/lib/avatar-docs.js", "src/lib/model-loaders.js"  ],
   "exclude": ["node_modules"]
 }
