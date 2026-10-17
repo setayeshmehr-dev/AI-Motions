@@ -1,13 +1,12 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import type { HandLandmarker } from "@mediapipe/tasks-vision"
 import { motion } from "framer-motion"
 import { CameraOff, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { getGesture } from "@/lib/gestures"
-import { classifyGesture, type Landmark } from "@/lib/hand-gestures"
+import { classifyGesture } from "@/lib/hand-gestures"
 import { getPasswordHandLandmarker, nextPasswordHandTs } from "@/lib/model-loaders"
 
 const HOLD_MS = 700
@@ -22,16 +21,11 @@ const HAND_CONNECTIONS: [number, number][] = [
   [0, 17],
 ]
 
-function drawSkeleton(
-  ctx: CanvasRenderingContext2D,
-  lm: Landmark[] | null,
-  w: number,
-  h: number
-) {
+function drawSkeleton(ctx: CanvasRenderingContext2D, lm: any[] | null, w: number, h: number) {
   ctx.clearRect(0, 0, w, h)
   if (!lm) return
-  const px = (p: Landmark) => (1 - p.x) * w
-  const py = (p: Landmark) => p.y * h
+  const px = (p: any) => (1 - p.x) * w
+  const py = (p: any) => p.y * h
 
   ctx.save()
   ctx.lineWidth = Math.max(2, w * 0.005)
@@ -45,7 +39,6 @@ function drawSkeleton(
     ctx.lineTo(px(lm[b]), py(lm[b]))
   }
   ctx.stroke()
-
   ctx.shadowBlur = 0
   for (let i = 0; i < 21; i++) {
     ctx.beginPath()
@@ -69,7 +62,7 @@ export function GestureCamera({ active, onCapture, onUnavailable }: GestureCamer
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef = useRef(0)
   const streamRef = useRef<MediaStream | null>(null)
-  const landmarkerRef = useRef<HandLandmarker | null>(null)
+  const landmarkerRef = useRef<any>(null)
   const lastVideoTimeRef = useRef(-1)
   const voteRef = useRef<(string | null)[]>([])
   const stableRef = useRef<{ id: string; since: number } | null>(null)
@@ -115,13 +108,14 @@ export function GestureCamera({ active, onCapture, onUnavailable }: GestureCamer
       const canvas = canvasRef.current
       const landmarker = landmarkerRef.current
       if (!video || !canvas || !landmarker || video.readyState < 2) return
+      if (video.videoWidth === 0) return
       if (video.currentTime === lastVideoTimeRef.current) return
       lastVideoTimeRef.current = video.currentTime
 
-      let landmarks: Landmark[] | null = null
+      let landmarks: any[] | null = null
       try {
         const result = landmarker.detectForVideo(video, nextPasswordHandTs())
-        landmarks = (result.landmarks?.[0] as Landmark[] | undefined) ?? null
+        landmarks = (result.landmarks?.[0] as any[] | undefined) ?? null
       } catch {
         return
       }
@@ -247,28 +241,12 @@ export function GestureCamera({ active, onCapture, onUnavailable }: GestureCamer
 
   return (
     <div className="space-y-2.5">
-      <div
-        className="relative overflow-hidden rounded-xl border border-border/70 bg-black"
-        style={{ aspectRatio: aspect }}
-      >
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="absolute inset-0 h-full w-full object-cover"
-          style={{ transform: "scaleX(-1)" }}
-        />
+      <div className="relative overflow-hidden rounded-xl border border-border/70 bg-black" style={{ aspectRatio: aspect }}>
+        <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full object-cover" style={{ transform: "scaleX(-1)" }} />
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
         {flashT > 0 && (
-          <motion.div
-            key={flashT}
-            className="pointer-events-none absolute inset-0 bg-primary/25"
-            initial={{ opacity: 0.7 }}
-            animate={{ opacity: 0 }}
-            transition={{ duration: 0.45 }}
-          />
+          <motion.div key={flashT} className="pointer-events-none absolute inset-0 bg-primary/25" initial={{ opacity: 0.7 }} animate={{ opacity: 0 }} transition={{ duration: 0.45 }} />
         )}
 
         {phase !== "running" && (
@@ -278,21 +256,14 @@ export function GestureCamera({ active, onCapture, onUnavailable }: GestureCamer
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <div>
                   <p className="text-sm font-medium">{loadingMsg}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    First time downloads ~8 MB, then it&apos;s cached.
-                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">First time downloads ~8 MB, then it&apos;s cached.</p>
                 </div>
               </>
             ) : (
               <>
                 <CameraOff className="h-8 w-8 text-destructive" />
                 <p className="text-sm font-medium">{errorMsg}</p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onUnavailable?.(errorMsg)}
-                >
+                <Button type="button" variant="outline" size="sm" onClick={() => onUnavailable?.(errorMsg)}>
                   Use the emoji picker instead
                 </Button>
               </>
@@ -314,13 +285,7 @@ export function GestureCamera({ active, onCapture, onUnavailable }: GestureCamer
             </div>
 
             <div className="absolute inset-x-3 bottom-3 h-1.5 overflow-hidden rounded-full bg-background/60">
-              <div
-                className="h-full rounded-full bg-primary"
-                style={{
-                  width: `${hold * 100}%`,
-                  boxShadow: "0 0 8px rgba(167, 139, 250, 0.9)",
-                }}
-              />
+              <div className="h-full rounded-full bg-primary" style={{ width: `${hold * 100}%`, boxShadow: "0 0 8px rgba(167, 139, 250, 0.9)" }} />
             </div>
           </>
         )}

@@ -1,10 +1,7 @@
 // Singleton model loaders.
 // TWO hand loaders:
-//  · getHandLandmarker         — MIRROR (welcome page): numHands 2
-//  · getPasswordHandLandmarker — AUTH (signup/signin password): numHands 1,
-//    its own instance + timestamp counter. A lone hand with 2 slots
-//    sometimes lands in landmarks[1], leaving [0] empty → the password
-//    camera captured nothing. Dedicated loader = stable.
+//  · getHandLandmarker         — MIRROR (welcome): numHands 2
+//  · getPasswordHandLandmarker — AUTH (password): numHands 1, own instance.
 
 if (typeof window !== "undefined" && !(window as any).__apWasmLogsSilenced) {
   ;(window as any).__apWasmLogsSilenced = true
@@ -109,10 +106,10 @@ export function getPasswordHandLandmarker() {
     passwordHandPromise = (async () => {
       const vision = await import("@mediapipe/tasks-vision")
       const fileset = await vision.FilesetResolver.forVisionTasks(WASM)
-      const url = MODEL_SOURCES.hand[0]
+      const urls = MODEL_SOURCES.hand
       const build = (delegate: "GPU" | "CPU") =>
         vision.HandLandmarker.createFromOptions(fileset, {
-          baseOptions: { modelAssetPath: url, delegate },
+          baseOptions: { modelAssetPath: urls[0], delegate },
           runningMode: "VIDEO",
           numHands: 1,
         })
