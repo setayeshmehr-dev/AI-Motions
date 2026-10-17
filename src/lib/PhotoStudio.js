@@ -1,0 +1,178 @@
+// PhotoStudio — invisible offscreen three.js stage that photographs every
+// avatar once at app start. Cached in localStorage; only missing photos
+// are shot on later visits.
+//
+// thumb5 prefix — new PORTRAIT framing: camera higher & closer so the
+// face is clearly visible (previous framing cut off the head).
+
+import * as THREE from "three"
+import { GLTFLoader } from "three-stdlib"
+import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm"
+import { HANG_ARM_R, HANG_ARM_L } from "./body-solver"
+
+const THUMB_PREFIX = "avatarpuppet:thumb5:"
+export const thumbKey = (id) => THUMB_PREFIX + id
+
+export function loadThumbs() {
+  const out = {}
+  if (typeof window === "undefined") return out
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (k && k.startsWith(THUMB_PREFIX)) out[k.slice(THUMB_PREFIX.length)] = localStorage.getItem(k)
+    }
+  } catch {}
+  return out
+}
+
+export function getCachedThumb(id) {
+  if (typeof window === "undefined") return null
+  try { return localStorage.getItem(thumbKey(id)) } catch { return null }
+}
+
+function storeThumb(id, dataUrl) {
+  try { localStorage.setItem(thumbKey(id), dataUrl) } catch {}
+}
+
+/**
+ * RAW-skeleton generation detection:
+   - VRM 0.x: LEFT arm bone at -X in world space → needs the 180° flip.
+   - VRM 1.0: LEFT arm at +X → already faces the camera.
+ */
+function applyFacing(vrm) {
+  let needsFlip = false
+  try {
+    const hb = vrm.humanoid?.humanBones
+    const lArm = hb?.leftUpperArm
+    const rArm = hb?.rightUpperArm
+    if (lArm && rArm) {
+      vrm.scene.updateMatrixWorld(true)
+      const l = lArm.getWorldPosition(new THREE.Vector3())
+      const r = rArm.getWorldPosition(new THREE.Vector3())
+      needsFlip = l.x < r.x
+    }
+  } catch {}
+  vrm.scene.rotation.y = needsFlip ? Math.PI : 0
+  return !needsFlip
+}
+
+/**
+ * Relaxed portrait pose — head/torso NEVER touched (zeroing quaternions
+   droops the neck). Arms use the live stage's HANG pose + a soft smile.
+*/
+function relaxAvatar(vrm) {
+  const humanoid = vrm.humanoid
+  if (!humanoid) return
+
+  const rUp = humanoid.getNormalizedBoneNode("rightUpperArm")
+  const rLo = humanoid.getNormalizedBoneNode("rightLowerArm")
+  const lUp = humanoid.getNormalizedBoneNode("leftUpperArm")
+  const lLo = humanoid.getNormalizedBoneNode("leftLowerArm")
+  if (rUp && HANG_ARM_R?.upper) rUp.quaternion.copy(HANG_ARM_R.upper)
+  if (rLo && HANG_ARM_R?.lower) rLo.quaternion.copy(HANG_ARM_R.lower)
+  if (lUp && HANG_ARM_L?.upper) lUp.quaternion.copy(HANG_ARM_L.upper)
+  if (lLo && HANG_ARM_L?.lower) lLo.quaternion.copy(HANG_ARM_L.lower)
+
+  const em = vrm.expressionManager
+  if (em) {
+    try { em.setValue("happy", 0.3) } catch {}
+  }
+
+  humanoid.update?.()
+  vrm.update(0)
+}
+
+/**
+ * Photograph every avatar without a cached photo.
+ * `onProgress(done, total, currentId)` fires after each shot.
+ */
+export async function shootMissingThumbnails({ avatars, urls, width = 224, height = 320, onProgress }) {
+  const photographed = {}
+
+  const todo = avatars.filter((id) => !getCachedThumb(id))
+  const total = todo.length
+  if (total === 0) {
+    onProgress?.(0, 0, null)
+    return photographed
+  }
+
+  /* --- the invisible stage (built once) --- */
+  const canvas = document.createElement("canvas")
+  canvas.width = width
+  canvas.height = height
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: true,
+    alpha: true,
+    preserveDrawingBuffer: true,
+  })
+  renderer.setSize(width, height, false)
+  renderer.setPixelRatio(1)
+
+  const scene = new THREE.Scene()
+  scene.background = new THREE.Color("#0e1126")
+
+  /* ---- PORTRAIT FRAMING ----
+     Higher (1.5) + closer (2.1) than before, looking at the upper chest —
+     frames the avatar from head to mid-thigh so the FACE is clearly
+     visible in the picker cards. Tweak freely:
+       camera Y (1.5)  → higher = more "looking slightly down" angle
+       camera Z (2.1)  → smaller = bigger avatar in frame
+       lookAt Y (1.15) → higher = frame shifts up (more head) */
+  const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 50)
+  camera.position.set(0, 2, 2.1)
+  camera.lookAt(0, 1.5, 0)
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.85))
+  const key = new THREE.DirectionalLight(0xffffff, 1.6)
+  key.position.set(2.5, 4, 3)
+  scene.add(key)
+  const rim = new THREE.PointLight(0x8b5cf6, 14, 14)
+  rim.position.set(-3, 2, -2.5)
+  scene.add(rim)
+
+  const loader = new GLTFLoader()
+  loader.register((parser) => new VRMLoaderPlugin(parser))
+
+  let done = 0
+  for (const id of todo) {
+    const url = urls[id]
+    if (!url) { done++; onProgress?.(done, total, id); continue }
+
+    const gltf = await new Promise((resolve, reject) => {
+      loader.load(url, resolve, undefined, reject)
+    }).catch(() => null)
+    if (!gltf?.userData?.vrm) { done++; onProgress?.(done, total, id); continue }
+
+    const vrm = gltf.userData.vrm
+    applyFacing(vrm) // face the camera — RAW-skeleton detection
+    relaxAvatar(vrm) // arms hang, soft smile, head untouched
+    scene.add(vrm.scene)
+
+    // flush a few frames so skinning settles before the shot
+    renderer.render(scene, camera)
+    await new Promise((r) => setTimeout(r, 60))
+    renderer.render(scene, camera)
+    await new Promise((r) => setTimeout(r, 60))
+    renderer.render(scene, camera)
+
+    // shoot
+    try {
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.78)
+      storeThumb(id, dataUrl)
+      photographed[id] = dataUrl
+    } catch (e) {
+      console.warn("[PhotoStudio] capture failed for", id, e?.message || e)
+    }
+
+    // clean up before the next actor
+    scene.remove(vrm.scene)
+    try { VRMUtils.deepDispose(vrm.scene) } catch {}
+
+    done++
+    onProgress?.(done, total, id)
+  }
+
+  renderer.dispose()
+  return photographed
+}
