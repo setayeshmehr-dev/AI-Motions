@@ -1,7 +1,5 @@
 // Singleton model loaders.
-// TWO hand loaders:
-//  · getHandLandmarker         — MIRROR (welcome): numHands 2
-//  · getPasswordHandLandmarker — AUTH (password): numHands 1, own instance.
+// getHandLandmarker — MIRROR (welcome): numHands 2, emotional gestures.
 
 if (typeof window !== "undefined" && !(window as any).__apWasmLogsSilenced) {
   ;(window as any).__apWasmLogsSilenced = true
@@ -97,39 +95,7 @@ export function getPoseLandmarker() {
   return posePromise
 }
 
-/* ---- dedicated single-hand loader for the gesture PASSWORD ---- */
-let passwordHandPromise: Promise<any> | null = null
-let passwordHandTs = 0
-
-export function getPasswordHandLandmarker() {
-  if (!passwordHandPromise) {
-    passwordHandPromise = (async () => {
-      const vision = await import("@mediapipe/tasks-vision")
-      const fileset = await vision.FilesetResolver.forVisionTasks(WASM)
-      const urls = MODEL_SOURCES.hand
-      const build = (delegate: "GPU" | "CPU") =>
-        vision.HandLandmarker.createFromOptions(fileset, {
-          baseOptions: { modelAssetPath: urls[0], delegate },
-          runningMode: "VIDEO",
-          numHands: 1,
-        })
-      try {
-        return await build("GPU")
-      } catch {
-        return await build("CPU")
-      }
-    })().catch((e) => {
-      passwordHandPromise = null
-      throw e
-    })
-  }
-  return passwordHandPromise
-}
-
-export const nextPasswordHandTs = () =>
-  (passwordHandTs = Math.max(performance.now(), passwordHandTs + 1))
-
-// strictly-increasing timestamps for the shared loaders
+// strictly-increasing timestamps
 let handTs = 0
 let faceTs = 0
 let poseTs = 0
