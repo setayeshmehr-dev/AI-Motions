@@ -1,2 +1,2 @@
-# ai-avatar
+# ai
 
