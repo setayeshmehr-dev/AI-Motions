@@ -1,4 +1,4 @@
-# 🤟 Doppel 
+# 🤟 AI-Motion
 A real-time 3D avatar app with **face-based authentication**, built with **Next.js, TypeScript, Three.js, and MediaPipe**.
 Doppel turns your webcam into a full-body motion capture studio — your avatar mirrors your body, face, and emotions, live in the browser. No passwords. No servers.
 
