@@ -58,7 +58,7 @@ async function createModel(kind: string, preferred: "GPU" | "CPU") {
       }
     } catch (err) {
       lastError = err
-      console.warn(`[ai-avatar] model source failed (${kind}): ${url}`, err)
+      console.warn(`[AI-Motions] model source failed (${kind}): ${url}`, err)
     }
   }
   throw lastError || new Error(`All model sources failed for "${kind}"`)

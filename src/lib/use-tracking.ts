@@ -48,7 +48,7 @@ export function useTracking(enabled: boolean) {
           else if (kind === "face") face = m
           else pose = m
         })
-        .catch((e: unknown) => console.warn(`[ai-avatar] "${kind}" unavailable:`, e))
+        .catch((e: unknown) => console.warn(`[Ai-Motions] "${kind}" unavailable:`, e))
         .finally(() => {
           pending[kind] = null
         })

@@ -130,7 +130,7 @@ export function DocumentationModal({
                 ))}
 
                 <p className="mt-8 border-t border-border/50 pt-4 text-center text-xs text-muted-foreground">
-                  ai-avatar — models &amp; technologies
+                  AI-Motions — models &amp; technologies
                 </p>
               </div>
             </div>
