@@ -4,7 +4,7 @@ Doppel turns your webcam into a full-body motion capture studio — your avatar 
 
 ## 🚀 Live Demo
 <a href="https://ai-avatar-liard.vercel.app">
-  <img width="100" height="60" alt="Image" src="https://img.shields.io/badge/Live-Demo-8B5CF6?style=for-the-badge&logo=vercel" />
+  <img width="480" height="306" alt="Image" src="https://github.com/user-attachments/assets/f73fef56-faf5-4264-a93b-34211751e5f9" />
 </a>
 
 ## 🛠️ Tech Stack
