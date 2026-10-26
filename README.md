@@ -70,7 +70,7 @@ A 33-point skeleton mirrors your whole body live. Sit, stand, wave or lean — i
 
 Hand signs trigger emotional reactions: 👍 joy hop · ✌️ playful wink · 👎 sad droop · 🤟 celebration bounce.
 
-<img width="874" height="715" alt="Image" src="https://github.com/user-attachments/assets/034fc0b7-dbad-4f3e-b2fa-3915ec7f13e2" />
+<img width="874" height="715" alt="Image" src="https://github.com/user-attachments/assets/1c2a63ec-01a0-41f5-b83c-55fa0bbfe222" />
 
 ---
 
