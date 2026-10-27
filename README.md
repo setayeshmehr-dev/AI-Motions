@@ -16,8 +16,7 @@ Doppel turns your webcam into a full-body motion capture studio — your avatar 
 - **Three.js**
 - **MediaPipe**
 - **face-api**
-- **WebGL**
-
+- 
 ## 🎯 Project Focus
 
 - Face is the only password — biometric login with liveness detection
