@@ -26,6 +26,8 @@ Doppel turns your webcam into a full-body motion capture studio — your avatar 
 - 100% client-side — zero servers, zero data transmission
 - Clean, consistent, and responsive interface
 
+---
+
 ### 👨‍💻 Developer
   Amirali Setayeshmehr
   
