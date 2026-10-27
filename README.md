@@ -33,7 +33,7 @@ Doppel turns your webcam into a full-body motion capture studio — your avatar 
   Parsa Ghorbanian<br/>
   <<[PARNIAN](https://trainingsitedesign.ir/)>><br/>
   <<[Instagram](https://www.instagram.com/parsa_ghorbanian_web/)>>
-  </hr>
+  </h>
   a</br>b
 
 ### Face Authentication
