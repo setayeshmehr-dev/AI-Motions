@@ -7,7 +7,7 @@ Doppel turns your webcam into a full-body motion capture studio — your avatar 
   <img width="100" height="60" alt="Image" src="https://github.com/user-attachments/assets/f73fef56-faf5-4264-a93b-34211751e5f9" />
 </a>
 
-## 🛠️ Tech Stackپ
+## 🛠️ Tech Stackپپ
 - **Next**
 - **TypeScript**
 - **Tailwind**
