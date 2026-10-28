@@ -8,7 +8,6 @@ Doppel turns your webcam into a full-body motion capture studio — your avatar 
 </a>
 
 ## 🛠️ Tech Stack
-
 - **Next**
 - **TypeScript**
 - **Tailwind**
